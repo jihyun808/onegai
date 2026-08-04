@@ -1,0 +1,65 @@
+/* 스크롤해도 검색창과 필터는 위에 붙어 있게 */
+.home__controls {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  /* 손그림 테두리가 잘리지 않도록 좌우에 여유를 준다 */
+  padding: 10px 4px 12px;
+  background: var(--ivory);
+}
+
+.home__filters {
+  display: grid;
+  /* 곡명·가수명 2개 / 전체·태진·금영 3개 → 폭을 3:4로 나눈다 */
+  grid-template-columns: 3fr 4fr;
+  gap: 8px;
+  margin-top: 11px;
+  padding: 0 4px;
+}
+
+.home__heading {
+  margin: 14px 4px 10px;
+  font-family: var(--font-hand);
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.home__count {
+  color: var(--accent);
+}
+
+/* 가운뎃점을 CSS로 넣어 양옆 간격을 일정하게 유지한다 */
+.home__matched {
+  color: var(--ink-soft);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.home__matched::before {
+  content: '·';
+  margin: 0 6px;
+  color: var(--ink-faint);
+}
+
+.home__list {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 화면에 들어오면 다음 페이지를 부르는 감시 지점 */
+.home__sentinel {
+  height: 1px;
+}
+
+.home__loading,
+.home__end {
+  margin: 16px 0 0;
+  color: var(--ink-faint);
+  font-size: 12px;
+  text-align: center;
+}

@@ -1,0 +1,80 @@
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 14px 4px 0;
+  padding: 18px 18px 18px 20px;
+}
+
+.profile__avatar {
+  flex-shrink: 0;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--ivory-deep);
+}
+
+.profile__body {
+  min-width: 0;
+}
+
+.profile__name {
+  margin: 0;
+  font-family: var(--font-hand);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.profile__note {
+  margin: 2px 0 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.mypage__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 20px 4px 12px;
+  padding-top: 16px;
+  border-top: 1.5px solid var(--line-thin);
+}
+
+.mypage__heading {
+  margin: 0;
+  font-family: var(--font-hand);
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.mypage__count {
+  color: var(--accent);
+}
+
+.mypage__sorts {
+  display: flex;
+  gap: 8px;
+}
+
+.mypage__sort {
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.mypage__sort.is-on {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mypage__list {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

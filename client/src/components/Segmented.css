@@ -1,0 +1,35 @@
+.segmented {
+  display: flex;
+  gap: 6px;
+}
+
+.segmented__item {
+  flex: 1;
+  padding: 6px 4px;
+  border: 1.5px solid var(--line-thin);
+  border-radius: var(--radius-pill);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.segmented__item.is-selected {
+  border-color: var(--line);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.segmented__item.is-selected.is-tj {
+  border-color: var(--tj);
+  color: var(--tj);
+}
+
+.segmented__item.is-selected.is-kumyoung {
+  border-color: var(--kumyoung);
+  color: var(--kumyoung);
+}

@@ -1,0 +1,59 @@
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* 손그림 테두리가 모서리에서 안쪽으로 파고들어 글자를 덮지 않게 여백을 넉넉히 */
+  padding: 4px 20px 4px 22px;
+}
+
+.search__input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 0;
+  border: none;
+  background: none;
+  /* 16px 미만이면 iOS가 포커스 시 화면을 확대한다 */
+  font-size: 16px;
+  outline: none;
+}
+
+.search__input::placeholder {
+  color: var(--ink-faint);
+}
+
+/* 브라우저 기본 검색 취소 버튼은 숨기고 직접 만든 것을 쓴다 */
+.search__input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.search__clear {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ivory-deep);
+  color: var(--ink-soft);
+}
+
+.search__icon {
+  flex-shrink: 0;
+  color: var(--ink);
+}
+
+.search__spinner {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--line-thin);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: search-spin 0.7s linear infinite;
+}
+
+@keyframes search-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

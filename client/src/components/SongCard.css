@@ -1,0 +1,85 @@
+.song {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  list-style: none;
+}
+
+.song__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.song__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  /* 긴 일본어 제목이 카드를 밀어내지 않도록 */
+  overflow-wrap: anywhere;
+}
+
+.song__singer {
+  margin: 3px 0 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.song__numbers {
+  display: flex;
+  flex-shrink: 0;
+  gap: 12px;
+  text-align: center;
+}
+
+.song__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 46px;
+}
+
+.song__brand-name {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.song__no {
+  font-family: var(--font-hand);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.song__brand--tj .song__no {
+  color: var(--tj);
+}
+
+.song__brand--kumyoung .song__no {
+  color: var(--kumyoung);
+}
+
+/* 같은 브랜드에 버전이 여럿이면 두 번째부터는 부가 정보로 낮춘다 */
+.song__no:nth-of-type(n + 3) {
+  font-size: 15px;
+  opacity: 0.6;
+}
+
+.song__no--none {
+  color: var(--ink-faint) !important;
+}
+
+.song__mark {
+  flex-shrink: 0;
+  padding: 4px;
+  color: var(--ink-faint);
+  transition: color 0.15s ease;
+}
+
+.song__mark.is-on {
+  color: var(--ink);
+}
