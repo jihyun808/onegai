@@ -21,11 +21,28 @@ class FakeRedis:
         self.store[key] = value
         self.ttls[key] = ttl
 
+    def delete(self, key):
+        self.store.pop(key, None)
+        self.ttls.pop(key, None)
+
+    def incr(self, key):
+        value = int(self.store.get(key, 0)) + 1
+        self.store[key] = value
+        return value
+
+    def expire(self, key, ttl):
+        self.ttls[key] = ttl
+
+    def ttl(self, key):
+        return self.ttls.get(key, -1)
+
 
 @pytest.fixture
 def app():
     application = create_app()
-    application.config.update(TESTING=True)
+    # bcrypt 기본값(12)은 해시 한 번에 0.3초라 테스트가 느려진다.
+    # 알고리즘은 그대로이므로 검증 의미는 유지된다.
+    application.config.update(TESTING=True, BCRYPT_ROUNDS=4)
     yield application
 
 
@@ -49,6 +66,12 @@ def no_real_network(monkeypatch):
 
     monkeypatch.setattr(kysing, "search", blocked)
     monkeypatch.setattr(tjmedia, "search", blocked)
+
+    # 실제 MySQL도 건드리지 않는다. 테스트가 개발 DB를 바꾸면 안 된다.
+    from app.utils import db
+
+    db.reset_pool()
+    monkeypatch.setattr(db, "get_pool", lambda: None)
 
 
 @pytest.fixture(autouse=True)

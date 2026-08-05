@@ -55,6 +55,19 @@ class Config:
     # 미리듣기는 iTunes Search API를 쓴다. 키가 필요 없어 항상 켜져 있다.
     ITUNES_TIMEOUT = float(os.getenv("ITUNES_TIMEOUT", 8))
 
+    # 세션 쿠키. 자바스크립트가 못 읽게 하고(XSS 방어),
+    # 배포 시에는 HTTPS에서만 전송되도록 SESSION_COOKIE_SECURE를 켠다.
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
+    PERMANENT_SESSION_LIFETIME = int(os.getenv("SESSION_LIFETIME", 60 * 60 * 24 * 14))
+
+    # bcrypt 작업 계수. 높을수록 안전하지만 로그인이 느려진다.
+    BCRYPT_ROUNDS = int(os.getenv("BCRYPT_ROUNDS", 12))
+
+    # 프로필 이미지 data URL 상한 (base64라 원본보다 약 1.4배)
+    AVATAR_MAX_BYTES = int(os.getenv("AVATAR_MAX_BYTES", 400 * 1024))
+
     # CORS
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
 
@@ -65,6 +78,8 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
+    # 운영에서는 HTTPS를 전제로 한다. 안 그러면 세션 쿠키가 평문으로 오간다.
+    SESSION_COOKIE_SECURE = True
 
 
 config_by_name = {

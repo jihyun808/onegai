@@ -139,6 +139,19 @@ def get_stale(key):
     return get_json(stale_key(key))
 
 
+def delete(key):
+    client = get_client()
+    if client is None:
+        return False
+    try:
+        client.delete(key)
+        return True
+    except Exception as exc:
+        logger.warning("캐시 삭제 실패 (%s): %s", key, exc)
+        _drop_client()
+        return False
+
+
 def set_json(key, value, ttl=None):
     client = get_client()
     if client is None:

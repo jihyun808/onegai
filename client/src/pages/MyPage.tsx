@@ -1,7 +1,11 @@
 import { useMemo, useState } from 'react'
 
+import { AuthForm, type AuthMode } from '../components/AuthForm'
+import { Modal } from '../components/Modal'
+import { ProfileForm } from '../components/ProfileForm'
 import { SongCard } from '../components/SongCard'
 import { StateMessage } from '../components/StateMessage'
+import { useAuth } from '../hooks/useAuth'
 import { useBookmarks, type Bookmark } from '../hooks/useBookmarks'
 import type { SongGroup } from '../types/karaoke'
 import './MyPage.css'
@@ -25,8 +29,12 @@ function toGroup(bookmark: Bookmark): SongGroup {
 }
 
 export function MyPage() {
-  const { items, toggle, has } = useBookmarks()
+  const { session, login, signup, logout, updateProfile } = useAuth()
+  const { items, toggle, has } = useBookmarks(Boolean(session))
   const [sort, setSort] = useState<Sort>('recent')
+  // 어떤 팝업을 띄울지. null이면 안 띄운다.
+  const [auth, setAuth] = useState<AuthMode | null>(null)
+  const [editing, setEditing] = useState(false)
 
   const sorted = useMemo(() => {
     const copy = [...items]
@@ -40,16 +48,80 @@ export function MyPage() {
   return (
     <>
       <section className="profile sketch">
-        <div className="profile__avatar" aria-hidden="true" />
+        <div className="profile__avatar" aria-hidden="true">
+          {session?.avatar && <img src={session.avatar} alt="" />}
+        </div>
         <div className="profile__body">
-          <p className="profile__name">로그인 전이에요</p>
-          <p className="profile__note">
-            지금은 이 기기에만 저장돼요.
-            <br />
-            계정 기능은 준비 중입니다.
-          </p>
+          {session ? (
+            <>
+              <p className="profile__name">{session.username}</p>
+              <div className="profile__links">
+                <button
+                  type="button"
+                  className="profile__link"
+                  onClick={() => setEditing(true)}
+                >
+                  내 정보 수정
+                </button>
+                <span className="profile__divider" aria-hidden="true">
+                  |
+                </span>
+                <button type="button" className="profile__link" onClick={logout}>
+                  로그아웃
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="profile__name">로그인 전이에요</p>
+              <p className="profile__note">지금은 이 기기에만 저장돼요.</p>
+              <div className="profile__buttons">
+                <button
+                  type="button"
+                  className="profile__action"
+                  onClick={() => setAuth('login')}
+                >
+                  로그인
+                </button>
+                <button
+                  type="button"
+                  className="profile__action"
+                  onClick={() => setAuth('signup')}
+                >
+                  회원가입
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </section>
+
+      {auth && (
+        <Modal
+          title={auth === 'login' ? '로그인' : '회원가입'}
+          onClose={() => setAuth(null)}
+        >
+          <AuthForm
+            mode={auth}
+            onSubmit={async (id, password) => {
+              await (auth === 'login' ? login(id, password) : signup(id, password))
+              setAuth(null)
+            }}
+          />
+        </Modal>
+      )}
+
+      {editing && session && (
+        <Modal title="내 정보 수정" onClose={() => setEditing(false)}>
+          <ProfileForm
+            session={session}
+            onSave={async (patch) => {
+              await updateProfile(patch)
+              setEditing(false)
+            }}
+          />
+        </Modal>
+      )}
 
       <div className="mypage__head">
         <h2 className="mypage__heading">

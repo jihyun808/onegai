@@ -8,10 +8,17 @@
 
 .profile__avatar {
   flex-shrink: 0;
+  overflow: hidden;
   width: 54px;
   height: 54px;
   border-radius: 50%;
   background: var(--ivory-deep);
+}
+
+.profile__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .profile__body {
@@ -77,4 +84,51 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.profile__buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.profile__action {
+  padding: 7px 14px;
+  border: 1.5px solid var(--line-thin);
+  border-radius: var(--radius-pill);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.profile__action:hover {
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+/* 로그인 후에는 부가 동작이라 작게 둔다 */
+.profile__links {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 5px;
+}
+
+.profile__link {
+  color: var(--ink-faint);
+  font-size: 11.5px;
+}
+
+.profile__link:hover {
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.profile__divider {
+  color: var(--line-thin);
+  font-size: 10px;
 }

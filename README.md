@@ -177,6 +177,31 @@ curl "http://localhost:5001/api/search?q=Ado&type=singer&brand=tj"
 
 에러 응답: `400 invalid_request` (잘못된 파라미터), `502 upstream_error` (manana API 실패)
 
+### 인증
+
+```
+POST   /api/auth/register  {username, password}
+POST   /api/auth/login     {username, password}
+POST   /api/auth/logout
+GET    /api/auth/me        로그인 안 했으면 null
+PATCH  /api/auth/me        {username?, avatar?}
+```
+
+bcrypt 해싱, httpOnly 세션 쿠키, 계정당 로그인 5회 제한, IP 단위 요청 제한.
+실패 응답에 `field`가 실려 와 어느 입력창 아래에 메시지를 붙일지 알 수 있다.
+자세한 내용은 [DECISIONS.md](DECISIONS.md) 27번.
+
+### 즐겨찾기
+
+```
+GET    /api/favorites             곡 단위로 묶어서 반환
+POST   /api/favorites  {songs}
+DELETE /api/favorites/<brand>/<no>
+```
+
+로그인 전에는 기기(localStorage)에, 로그인하면 서버에 저장한다.
+로그인하는 순간 기기에 담아둔 것이 서버로 옮겨진다.
+
 ### `GET /api/health`
 
 서버 및 Redis 연결 상태. `?deep=1`을 붙이면 외부 소스까지 실제로 조회해 확인한다.
@@ -266,4 +291,4 @@ cd server
 ./venv/bin/python -m pytest
 ```
 
-네트워크를 타지 않는다 (외부 API·DB·Redis 모두 대체). 109개.
+네트워크를 타지 않는다 (외부 API·DB·Redis 모두 대체). 153개.

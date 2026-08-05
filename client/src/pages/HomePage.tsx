@@ -5,6 +5,7 @@ import { Segmented, type SegmentOption } from '../components/Segmented'
 import { SongCard } from '../components/SongCard'
 import { Spinner } from '../components/Spinner'
 import { StateMessage } from '../components/StateMessage'
+import { useAuth } from '../hooks/useAuth'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll'
 import { useSearch } from '../hooks/useSearch'
@@ -41,7 +42,8 @@ export function HomePage() {
     pending,
     loadMore,
   } = useSearch(query, type)
-  const { toggle, has } = useBookmarks()
+  const { session } = useAuth()
+  const { toggle, has } = useBookmarks(Boolean(session))
 
   // 브랜드 탭은 이미 받아둔 결과에서 거른다 — 서버를 다시 부르지 않는다
   const groups = useMemo(() => filterByBrand(allGroups, brand), [allGroups, brand])
