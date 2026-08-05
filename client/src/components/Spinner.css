@@ -1,0 +1,34 @@
+.spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 0 6px;
+}
+
+.spinner__wheel rect {
+  fill: var(--ink);
+  animation: spinner-fade 1s linear infinite;
+}
+
+.spinner__label {
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+@keyframes spinner-fade {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+
+/* 애니메이션을 줄이는 설정이면 회전 대신 은은한 깜빡임만 */
+@media (prefers-reduced-motion: reduce) {
+  .spinner__wheel rect {
+    animation: none;
+    opacity: 0.45;
+  }
+}

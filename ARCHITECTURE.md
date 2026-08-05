@@ -73,7 +73,7 @@ karaokedayo/
     ├── config.py            환경변수 기반 설정
     ├── run.py               진입점
     ├── db/schema.sql        MySQL 초기 스키마 (컨테이너 최초 기동 시 실행)
-    ├── tests/               pytest 99개 (네트워크 미사용)
+    ├── tests/               pytest 109개 (네트워크 미사용)
     └── app/
         ├── routes/          health.py, search.py, extras.py
         ├── services/        manana.py, kysing.py(금영공식), tjmedia.py(TJ공식),
@@ -94,7 +94,8 @@ karaokedayo/
 2. 캐시 조회       kada:search:v2:singer:all:ヨルシカ
    └ HIT  → 6번으로 (cached: true)
 3. 자체 DB 조회    songs 테이블 (0.03초)
-   └ 없으면 → TJ·금영 공식 → 실패/0건이면 manana 폴백
+   ├ 3건 이상 → 그대로 사용
+   └ 부족    → TJ·금영 공식 보강 → 실패/0건이면 manana 폴백
 4. 정규화          공백/전각/괄호/대소문자/카나 → match_key 생성
 5. 캐시 저장       TTL 24시간 (결과 없으면 10분)
 6. 페이지 절단     limit/offset 적용
@@ -247,7 +248,7 @@ Redis는 `brew install redis && brew services start redis`.
 docker compose exec server python -m pytest     # 또는 호스트에서 pytest
 ```
 
-99개. 네트워크를 타지 않는다 (외부 API와 Redis 모두 대체).
+109개. 네트워크를 타지 않는다 (외부 API·DB·Redis 모두 대체).
 
 ---
 

@@ -16,6 +16,8 @@
 
 import logging
 import re
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from html import unescape
@@ -36,8 +38,30 @@ KYSING_LATEST = "https://kysing.kr/latest/"
 # manana에 데이터가 있는 가장 이른 달 (그 이전은 전부 0건이다)
 EARLIEST = date(2000, 1, 1)
 
-# 월별 백필 동시 요청 수. manana는 가벼워 이 정도는 문제없다.
-BACKFILL_WORKERS = 4
+# 남의 서버다. 동시 요청 수를 낮추고 요청 사이에 간격을 둔다.
+# 급할 이유가 없다 — 백필은 한 번만 돌리고, 이후에는 하루 몇 건이다.
+BACKFILL_WORKERS = 2
+REQUEST_DELAY = 0.4
+
+# 노래방에 아직 등록되지 않은 예정곡은 받지 않는다.
+# 금영은 발매 예정월을 미리 올려두는데, 그 번호를 눌러도 기계에 곡이 없다.
+_throttle = threading.Semaphore(1)
+_last_request = [0.0]
+
+
+def _wait_turn():
+    """요청 사이에 최소 간격을 둔다."""
+    with _throttle:
+        gap = time.monotonic() - _last_request[0]
+        if gap < REQUEST_DELAY:
+            time.sleep(REQUEST_DELAY - gap)
+        _last_request[0] = time.monotonic()
+
+
+def _drop_unreleased(entries):
+    """아직 발매되지 않은 곡을 걸러낸다."""
+    today = date.today().isoformat()
+    return [e for e in entries if not (e.get("release") or "") > today]
 
 _PAGE_LINK = re.compile(r'href="\?s_page=(\d+)"')
 
@@ -72,6 +96,7 @@ def _record(source, brand, scope, found, inserted, status="ok", message=""):
 
 
 def _fetch_month(brand, ym):
+    _wait_turn()
     url = MANANA_RELEASE.format(ym=ym, brand=brand)
     response = requests.get(url, timeout=current_app.config["MANANA_TIMEOUT"])
     response.raise_for_status()
@@ -89,7 +114,7 @@ def backfill_month(brand, ym):
         return 0, 0
 
     # 응답에 다른 브랜드가 섞여 올 수 있어 걸러낸다
-    entries = [e for e in entries if e.get("brand") == brand]
+    entries = _drop_unreleased([e for e in entries if e.get("brand") == brand])
     saved = song.upsert(entries, "manana")
     _record("manana", brand, ym, len(entries), saved)
     return len(entries), saved
@@ -131,6 +156,7 @@ def backfill(brands=("tj", "kumyoung"), start=None, end=None, skip_done=True):
 
 
 def _fetch_kysing_latest(page):
+    _wait_turn()
     url = f"{KYSING_LATEST}?{urlencode({'s_page': page})}"
     response = requests.get(
         url,
@@ -163,11 +189,87 @@ def crawl_kysing_latest(max_pages=20):
         if not collected:
             return {"found": 0, "saved": 0}
 
-    entries = list(collected.values())
+    entries = _drop_unreleased(list(collected.values()))
     saved = song.upsert(entries, "kysing")
     _record("kysing", "kumyoung", "latest", len(entries), saved)
     logger.info("금영 신곡: %d곡 확인, %d곡 저장", len(entries), saved)
     return {"found": len(entries), "saved": saved}
+
+
+def japanese_artists(brand="tj", limit=None):
+    """일본곡을 부르는 가수 목록. 공백을 메울 때 검색어로 쓴다.
+
+    TJ 카탈로그가 더 크다(가수 16,019명 vs 금영 11,692명).
+
+    **가수 이름만 보면 안 된다.** Ado, YOASOBI, Vaundy, Aimer처럼
+    로마자 이름을 쓰는 일본 가수가 통째로 빠진다(1,129명 → 1,681명).
+    곡 제목에 일본어가 있으면 그 가수도 대상에 넣는다.
+    """
+    sql = """
+        SELECT DISTINCT singer FROM songs
+        WHERE brand = %s AND singer <> ''
+          AND (singer REGEXP '[ぁ-んァ-ヶ一-龥]'
+               OR title REGEXP '[ぁ-んァ-ヶ一-龥]')
+        ORDER BY singer
+    """
+    params = [brand]
+    if limit:
+        sql += " LIMIT %s"
+        params.append(limit)
+
+    rows = db.query(sql, tuple(params))
+    return [r["singer"] for r in rows or []]
+
+
+def fill_gap(brand="kumyoung", artists=None, limit=None, skip_done=True):
+    """가수별로 공식 사이트를 훑어 카탈로그 공백을 메운다.
+
+    금영 공식에는 전곡 목록이 없어서 월별 열거가 불가능하다.
+    대신 가수 이름으로는 검색되므로, 아는 가수를 하나씩 물어본다.
+
+    **느리다. 그래야 한다.** 남의 서버를 1,000번 넘게 두드리는 작업이라
+    크롤러의 속도 제한(_wait_turn)을 그대로 따른다. 한 번에 끝낼 필요가
+    없으므로 중단해도 이어서 할 수 있게 진행 상황을 남긴다.
+    """
+    from app.services import kysing, tjmedia
+
+    module = {"kumyoung": kysing, "tj": tjmedia}[brand]
+    names = artists if artists is not None else japanese_artists(limit=limit)
+
+    done = set()
+    if skip_done:
+        rows = db.query(
+            "SELECT scope FROM crawl_log WHERE source = %s AND brand = %s "
+            "AND status = 'ok' AND scope LIKE 'artist:%%'",
+            (module.__name__.rsplit(".", 1)[-1], brand),
+        )
+        done = {r["scope"][len("artist:") :] for r in rows or []}
+
+    source = module.__name__.rsplit(".", 1)[-1]
+    total_found = total_saved = 0
+    todo = [n for n in names if n not in done]
+    logger.info("공백 메우기 시작: %s, 가수 %d명", brand, len(todo))
+
+    for index, name in enumerate(todo, 1):
+        _wait_turn()
+        try:
+            rows = module.search(name, search_type="singer")
+        except Exception as exc:
+            logger.info("가수 조회 실패 (%s): %s", name, exc)
+            _record(source, brand, f"artist:{name}"[:32], 0, 0, "failed", str(exc))
+            continue
+
+        entries = _drop_unreleased([r for r in rows if r.get("brand") == brand])
+        saved = song.upsert(entries, source)
+        _record(source, brand, f"artist:{name}"[:32], len(entries), saved)
+        total_found += len(entries)
+        total_saved += saved
+
+        if index % 50 == 0:
+            logger.info("  %d/%d명 · %d곡 확인", index, len(todo), total_found)
+
+    logger.info("공백 메우기 완료: %d명, %d곡 확인, %d행 반영", len(todo), total_found, total_saved)
+    return {"artists": len(todo), "found": total_found, "saved": total_saved}
 
 
 def daily():

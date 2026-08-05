@@ -63,3 +63,24 @@
   font-size: 12px;
   text-align: center;
 }
+
+/* 공식 사이트까지 직접 확인하게 하는 버튼 */
+.home__more {
+  display: block;
+  width: 100%;
+  margin: 14px 0 0;
+  padding: 12px;
+  border: 1.5px solid var(--line-thin);
+  border-radius: var(--radius-pill);
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  font-weight: 600;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.home__more:hover {
+  border-color: var(--line);
+  color: var(--ink);
+}

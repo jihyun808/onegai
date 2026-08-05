@@ -1,6 +1,7 @@
 """검색 서비스: manana 호출 → 정규화 → 브랜드별 그룹핑, Redis 캐싱."""
 
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor
 
 from flask import current_app
@@ -31,6 +32,27 @@ MAX_LIMIT = 200
 # 그래서 금영에서 곡을 찾은 뒤, 그 제목으로 TJ 번호를 역조회해 붙인다.
 SEARCH_TYPES = (*manana.SEARCH_TYPES, "lyrics")
 LYRICS_TYPE = "lyrics"
+
+# 일본어(가나·한자)가 들어간 검색어. 자체 DB가 답할 수 있는 종류다.
+# 한글 발음('요루시카')이나 로마자('kakeru')는 공식 검색 인덱스에만 있어
+# 크롤링으로 가져올 수 없다 — 그럴 때만 공식을 찌른다.
+_JAPANESE = re.compile(r"[ぁ-んァ-ヶ一-龥]")
+_KOREAN = re.compile(r"[가-힣]")
+
+
+def _is_korean_song(item):
+    """일본곡 앱에 섞여 들어온 한국곡인지.
+
+    '미쿠'로 검색하면 드라마 '미미쿠스' OST 같은 한국곡이 딸려 온다.
+    노래방 DB가 부분 문자열로 매칭하기 때문이다.
+
+    **보수적으로 판단한다** — 한글이 있고 일본어가 전혀 없을 때만 한국곡으로 본다.
+    한국어 제목으로 등록된 일본 가수 곡은 0건임을 확인했고(2026-08-05),
+    애니 주제가의 한국어 더빙판(예: 코요태 '우리의꿈(원피스 OP)')은
+    실제로 한국곡이라 걸러도 무방하다.
+    """
+    text = f"{item.get('title', '')} {item.get('singer', '')}"
+    return bool(_KOREAN.search(text)) and not _JAPANESE.search(text)
 
 # 역조회는 곡마다 TJ를 한 번씩 부른다. 폭주를 막기 위해 상한을 둔다.
 LYRICS_CROSS_LOOKUP_LIMIT = 15
@@ -236,28 +258,66 @@ def _fetch_brand(brand, keyword, search_type):
     return _fill_release(rows, keyword, search_type, brand)
 
 
-def _fetch_from_db(brand, keyword, search_type):
-    """자체 DB에서 먼저 찾는다.
+def _merge(primary, extra):
+    """두 소스의 결과를 합친다. (브랜드, 곡번호)가 같으면 하나로 본다."""
+    seen = {(row["brand"], row["no"]) for row in primary}
+    merged = list(primary)
 
-    외부 사이트를 매번 치면 5초가 걸린다(금영이 느림). 크롤링해 둔
-    카탈로그를 보면 수십 밀리초다. 게다가 정규화된 컬럼으로 비교하므로
-    공백·괄호·카타카나 차이를 넘어 찾는다 — 외부 사이트는 못 하는 것이다.
+    for row in extra:
+        key = (row["brand"], row["no"])
+        if key not in seen:
+            seen.add(key)
+            merged.append(row)
 
-    DB가 없거나 아직 안 채워졌으면 None을 돌려주고 기존 경로로 넘어간다.
+    return merged
+
+
+def _fetch_catalog(brand, keyword, search_type, full=False):
+    """자체 DB를 먼저 보고, 필요하면 공식 사이트로 보강한다.
+
+    두 단계로 나뉜다.
+      full=False (기본) — DB만 본다. 0.03초. 결과가 전부가 아닐 수 있다.
+      full=True        — 공식까지 뒤져 합친다. 4초.
+
+    클라이언트는 1차로 빠르게 받아 그리고, complete가 false면
+    곧바로 full=1로 다시 불러 뒤늦게 온 것을 아래에 덧붙인다.
+
+    DB는 빠르지만(0.03초 vs 4.7초) 우리가 크롤링한 표기만 갖고 있다.
+    한글 발음('요루시카')이나 로마자('kakeru')는 **공식 사이트의 검색
+    인덱스에만 있고 화면에는 노출되지 않아** 크롤링으로 가져올 수 없다.
+    그래서 DB가 못 찾은 검색어는 공식에 물어본다.
+
+    DB 결과가 넉넉하면 공식은 부르지 않는다. 그래야 남의 서버 부담과
+    응답 시간을 아낀다.
     """
-    if not current_app.config["DB_SEARCH_ENABLED"] or search_type == LYRICS_TYPE:
-        return None
+    if not current_app.config["DB_SEARCH_ENABLED"]:
+        return _fetch_all_brands(brand, keyword, search_type), True
 
     rows = song.search(keyword, search_type, _target_brands(brand))
+
     if rows is None:
-        return None
+        # DB 장애. 예전처럼 외부만 본다.
+        return _fetch_all_brands(brand, keyword, search_type), True
 
-    if not rows:
-        # 아직 백필이 안 끝났는데 0건일 수 있다. 외부에서 한 번 더 확인한다.
-        logger.info("DB 결과 0건, 외부 조회로 넘어갑니다: %r", keyword)
-        return None
+    if not full:
+        # 공식을 더 찔러볼 이유가 있는지 판단한다.
+        # 매번 찌르면 DB를 만든 의미가 없고, 아예 안 찌르면 한글 발음
+        # 검색이 안 된다.
+        #   - 결과 0건        → 확인 필요
+        #   - 일본어가 아닌 검색어 → DB에 그 표기가 없다. 확인 필요
+        #   - 그 외            → DB로 충분하다
+        needs_official = not rows or not _JAPANESE.search(keyword)
+        return rows, not needs_official
 
-    return rows
+    logger.info("DB %d건, 공식으로 보강합니다: %r", len(rows), keyword)
+    try:
+        return _merge(rows, _fetch_all_brands(brand, keyword, search_type)), True
+    except Exception as exc:
+        # 공식이 죽어도 DB 결과는 살린다
+        logger.warning("공식 보강 실패, DB 결과만 씁니다: %s", exc)
+        if rows:
+            return rows, True
+        raise
 
 
 def _fetch_all_brands(brand, keyword, search_type):
@@ -327,17 +387,23 @@ def _build_groups(items):
     return ordered
 
 
-def search(keyword, search_type="song", brand=ALL_BRANDS, limit=None, offset=None):
+def search(keyword, search_type="song", brand=ALL_BRANDS, limit=None, offset=None,
+           full=False):
     """검색 결과를 브랜드별로 그룹핑해 반환한다."""
     keyword, search_type, brand = _validate(keyword, search_type, brand)
     limit, offset = _validate_paging(limit, offset)
 
+    # 1차(DB만)와 2차(공식 포함)는 결과가 다르므로 캐시도 나눈다
     key = _cache_key(keyword, search_type, brand)
+    if not full:
+        key += ":quick"
     cached = cache.get_json(key)
 
     if cached is not None:
         items = cached
         from_cache = True
+        # 캐시된 것은 그 단계의 완성도를 그대로 따른다
+        complete = full
     else:
         # brand를 생략한 manana 호출은 전 기기를 훑는 대신 잘린 결과를 준다.
         # (예: singer=Ado → 무브랜드 응답의 tj는 10건, tj 직접 호출은 70건)
@@ -345,11 +411,9 @@ def search(keyword, search_type="song", brand=ALL_BRANDS, limit=None, offset=Non
         try:
             if search_type == LYRICS_TYPE:
                 raw = _fetch_lyrics(keyword, brand)
+                complete = True
             else:
-                # 자체 DB → 없으면 외부 사이트
-                raw = _fetch_from_db(brand, keyword, search_type)
-                if raw is None:
-                    raw = _fetch_all_brands(brand, keyword, search_type)
+                raw, complete = _fetch_catalog(brand, keyword, search_type, full)
         except manana.MananaError:
             # 모든 소스가 실패했다. 만료된 사본이라도 있으면 그거라도 내보낸다.
             stale = cache.get_stale(key)
@@ -362,7 +426,11 @@ def search(keyword, search_type="song", brand=ALL_BRANDS, limit=None, offset=Non
             )
 
         allowed = set(_target_brands(brand))
-        items = [i for i in normalize_entries(raw) if i["brand"] in allowed]
+        items = [
+            i
+            for i in normalize_entries(raw)
+            if i["brand"] in allowed and not _is_korean_song(i)
+        ]
         items.sort(key=_sort_key, reverse=True)
 
         if items:
@@ -379,12 +447,13 @@ def search(keyword, search_type="song", brand=ALL_BRANDS, limit=None, offset=Non
         search_type=search_type,
         limit=limit,
         offset=offset,
+        complete=complete,
     )
 
 
 def _build_response(
     items, brand, from_cache, query=None, search_type=None, limit=None, offset=0,
-    stale=False,
+    stale=False, complete=True,
 ):
     total = len(items)
 
@@ -411,6 +480,9 @@ def _build_response(
         payload["offset"] = offset
         payload["returned"] = len(page)
         payload["has_more"] = offset + len(page) < total
+
+    # false면 아직 전부가 아니다 — 클라이언트가 full=1로 다시 부른다
+    payload["complete"] = complete
 
     if stale:
         # 업스트림이 죽어 만료된 사본을 내보냈다는 표시.

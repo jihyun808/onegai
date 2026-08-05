@@ -50,6 +50,11 @@ _CELL_SPLIT = re.compile(r'<li class="grid-item')
 # 쪼갠 조각 앞에는 여는 태그의 나머지(` title3">`)가 남는다
 _OPEN_TAG_TAIL = re.compile(r"^[^>]*>")
 _TAG = re.compile(r"<[^>]+>")
+# TJ는 검색어와 일치한 부분을 <span class='highlight'>로 감싼다.
+# 이걸 다른 태그처럼 공백으로 바꾸면 이름이 쪼개진다
+# ('Do As <span>Infinity</span>' → 'Do As Infinity'가 아니라 'Do As Inf i n i ty').
+# 글자 사이에 끼는 인라인 태그는 지우고 나머지만 공백으로 바꾼다.
+_INLINE_TAG = re.compile(r"</?(?:span|b|strong|em|i)\b[^>]*>", re.I)
 # 모바일용으로 각 칸 앞에 붙는 라벨. 텍스트로 같이 딸려 오므로 떼어낸다.
 _LABEL = re.compile(r"^(곡번호|곡제목|가수|작사가|작곡가)\s*")
 
@@ -63,6 +68,8 @@ def _text(fragment):
 
     # 여는 태그의 나머지가 앞에 붙어 있으므로 먼저 지운다
     fragment = _OPEN_TAG_TAIL.sub("", fragment, count=1)
+    # 강조용 인라인 태그는 글자 사이를 끊지 않도록 그냥 지운다
+    fragment = _INLINE_TAG.sub("", fragment)
     return _LABEL.sub("", " ".join(unescape(_TAG.sub(" ", fragment)).split()))
 
 

@@ -228,7 +228,8 @@ curl "http://localhost:5001/api/search?q=Ado&type=singer&brand=tj"
 ### 데이터 소스
 
 검색은 **자체 카탈로그 DB를 먼저 본다** (8.6만 곡, 0.03초).
-DB에 없거나 장애면 아래 외부 소스로 폴백한다.
+결과가 적으면(3건 미만) 공식 사이트로 보강한다 — 한글 발음(`요루시카`)이나
+로마자(`kakeru`)는 공식 검색 인덱스에만 있어 크롤링으로 못 가져오기 때문이다.
 
 ```bash
 docker compose exec server flask --app run crawl-backfill   # 최초 1회 (~10분)
@@ -265,4 +266,4 @@ cd server
 ./venv/bin/python -m pytest
 ```
 
-네트워크를 타지 않는다 (외부 API와 Redis 모두 대체). 99개.
+네트워크를 타지 않는다 (외부 API·DB·Redis 모두 대체). 109개.

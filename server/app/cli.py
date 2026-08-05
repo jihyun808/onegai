@@ -16,6 +16,7 @@ def register_cli(app):
     app.cli.add_command(crawl_backfill)
     app.cli.add_command(crawl_daily)
     app.cli.add_command(crawl_status)
+    app.cli.add_command(crawl_fill_gap)
 
 
 @click.command("crawl-backfill")
@@ -37,6 +38,19 @@ def crawl_daily():
     """최근 두 달 + 금영 신곡을 갱신한다."""
     result = crawler.daily()
     click.echo(f"월별: {result['found']}곡 · 금영 신곡: {result['kysing_latest']}")
+
+
+@click.command("crawl-fill-gap")
+@click.option("--brand", default="kumyoung", help="공백을 메울 브랜드")
+@click.option("--limit", default=None, type=int, help="가수 수 제한 (시험용)")
+@click.option("--redo", is_flag=True, help="이미 훑은 가수도 다시 본다.")
+@with_appcontext
+def crawl_fill_gap(brand, limit, redo):
+    """가수별로 공식을 훑어 카탈로그 공백을 메운다. 느리다(1~2시간)."""
+    result = crawler.fill_gap(brand=brand, limit=limit, skip_done=not redo)
+    click.echo(
+        f"{result['artists']}명 조회 · {result['found']}곡 확인 · {result['saved']}행 반영"
+    )
 
 
 @click.command("crawl-status")

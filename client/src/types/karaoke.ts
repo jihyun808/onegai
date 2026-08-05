@@ -44,6 +44,11 @@ export interface SearchResponse {
   counts: Partial<Record<Brand, number>>
   /** 현재 페이지에서 양쪽 브랜드에 모두 있는 곡 수 */
   matched: number
+  /**
+   * false면 아직 전부가 아니다 — 자체 DB만 본 1차 응답이라는 뜻.
+   * 클라이언트는 곧바로 full=1로 다시 불러 나머지를 채운다.
+   */
+  complete: boolean
   results: Partial<Record<Brand, Song[]>>
   groups: SongGroup[]
 }

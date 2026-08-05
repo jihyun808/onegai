@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { SearchInput } from '../components/SearchInput'
 import { Segmented, type SegmentOption } from '../components/Segmented'
 import { SongCard } from '../components/SongCard'
+import { Spinner } from '../components/Spinner'
 import { StateMessage } from '../components/StateMessage'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll'
 import { useSearch } from '../hooks/useSearch'
+import { countMatched, filterByBrand } from '../utils/groups'
 import type { BrandFilter, SearchType } from '../types/karaoke'
 import './HomePage.css'
 
@@ -27,17 +29,27 @@ export function HomePage() {
   const [brand, setBrand] = useState<BrandFilter>('all')
 
   const {
-    groups,
-    total,
-    matched,
+    groups: allGroups,
+    total: serverTotal,
     hasMore,
     loading,
     loadingMore,
+    loadingMore2,
+    canSearchMore,
+    searchMore,
     error,
     pending,
     loadMore,
-  } = useSearch(query, type, brand)
+  } = useSearch(query, type)
   const { toggle, has } = useBookmarks()
+
+  // 브랜드 탭은 이미 받아둔 결과에서 거른다 — 서버를 다시 부르지 않는다
+  const groups = useMemo(() => filterByBrand(allGroups, brand), [allGroups, brand])
+  const matched = useMemo(() => countMatched(groups), [groups])
+
+  // 전체 탭은 서버가 알려준 총 곡 수를 쓴다(아직 안 불러온 것 포함).
+  // 브랜드를 걸렀을 때는 서버 총계와 맞지 않으므로 화면에 있는 수를 센다.
+  const total = brand === 'all' ? serverTotal : groups.length
 
   const sentinelRef = useInfiniteScroll(hasMore && !loading, loadMore)
 
@@ -76,7 +88,8 @@ export function HomePage() {
         <StateMessage title="검색에 실패했어요" description={error} />
       )}
 
-      {hasQuery && !error && total === 0 && !busy && (
+      {/* 공식까지 뒤지는 중에는 '없음'이라고 단정하지 않는다 */}
+      {hasQuery && !error && total === 0 && !busy && !loadingMore2 && (
         <StateMessage
           title="검색 결과가 없어요"
           description="다른 검색어나 검색 타입으로 시도해 보세요"
@@ -112,11 +125,28 @@ export function HomePage() {
             </p>
           )}
 
-          {!hasMore && groups.length > 0 && (
+          {!hasMore && !loadingMore2 && groups.length > 0 && (
             <p className="home__end">모든 결과를 다 봤어요</p>
+          )}
+
+          {/*
+            자체 DB는 크롤링 시점까지만 담고 있다. 찾는 곡이 안 보이면
+            눌러서 노래방 공식 사이트까지 확인할 수 있게 한다.
+          */}
+          {canSearchMore && !hasMore && (
+            <button type="button" className="home__more" onClick={searchMore}>
+              찾는 곡이 없나요? 노래방 사이트에서 더 찾아보기
+            </button>
           )}
         </>
       )}
+
+      {/*
+        자체 DB로 먼저 보여준 뒤 공식 사이트를 뒤지는 동안 표시한다.
+        결과가 아직 0건일 때도 보여야 하므로 목록 블록 밖에 둔다 —
+        안에 두면 '결과 없음'도 스피너도 안 나와 빈 화면이 된다.
+      */}
+      {hasQuery && !error && loadingMore2 && <Spinner label="더 찾아보는 중…" />}
     </>
   )
 }

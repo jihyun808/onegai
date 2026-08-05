@@ -17,6 +17,8 @@ interface SearchParams {
   brand: BrandFilter
   limit?: number
   offset?: number
+  /** 공식 사이트까지 뒤진다. 느리지만 결과가 완전하다. */
+  full?: boolean
   signal?: AbortSignal
 }
 
@@ -26,11 +28,13 @@ export async function searchSongs({
   brand,
   limit,
   offset,
+  full,
   signal,
 }: SearchParams): Promise<SearchResponse> {
   const params = new URLSearchParams({ q, type, brand })
   if (limit !== undefined) params.set('limit', String(limit))
   if (offset !== undefined) params.set('offset', String(offset))
+  if (full) params.set('full', '1')
 
   const response = await fetch(`/api/search?${params}`, { signal })
 

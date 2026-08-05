@@ -107,11 +107,11 @@ class TestGrouping:
     def test_group_keeps_every_number(self, app, fake_manana):
         """괄호 제거로 버전 표기가 병합돼도 번호는 잃지 않는다."""
         fake_manana.by_brand["kumyoung"] = [
-            entry("kumyoung", "88397", "미아(Acoustic Ver.)", "아이유"),
-            entry("kumyoung", "46438", "미아", "아이유"),
+            entry("kumyoung", "88397", "花に亡霊(Acoustic Ver.)", "ヨルシカ"),
+            entry("kumyoung", "46438", "花に亡霊", "ヨルシカ"),
         ]
         with app.app_context():
-            result = search_service.search("아이유", "singer", "kumyoung")
+            result = search_service.search("ヨルシカ", "singer", "kumyoung")
 
         assert len(result["groups"]) == 1
         assert sorted(result["groups"][0]["brands"]["kumyoung"]) == ["46438", "88397"]
@@ -194,7 +194,7 @@ class TestResponseShape:
         payload = client.get("/api/search?q=ヨルシカ&type=singer&brand=all").get_json()
         assert set(payload) == {
             "query", "type", "brand", "cached",
-            "total", "counts", "matched", "results", "groups",
+            "total", "counts", "matched", "results", "groups", "complete",
         } | PAGING_KEYS
 
     def test_non_ascii_is_not_escaped(self, client, two_brands):
