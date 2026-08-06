@@ -32,7 +32,7 @@ export function useAuth() {
     }
   }, [])
 
-  /** 로그인 전 기기에 담아둔 즐겨찾기를 서버로 옮긴다. 실패해도 로그인은 유지한다. */
+  /** 가입 전 기기에 담아둔 즐겨찾기를 계정으로 옮긴다. 실패해도 가입은 유지한다. */
   async function carryOverBookmarks() {
     try {
       await migrateLocal()
@@ -41,10 +41,10 @@ export function useAuth() {
     }
   }
 
+  // 로그인은 합치지 않는다. 이미 서버에 담아둔 목록이 있는데
+  // 그 기기에서 남이 담아둔 것까지 섞이면 곤란하다.
   const login = useCallback(async (username: string, password: string) => {
-    const found = await api.login(username, password)
-    await carryOverBookmarks()
-    setSession(found)
+    setSession(await api.login(username, password))
   }, [])
 
   const signup = useCallback(async (username: string, password: string) => {

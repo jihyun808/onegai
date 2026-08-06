@@ -63,3 +63,8 @@ export function updateMe(patch: {
 }): Promise<Session> {
   return request('/me', { method: 'PATCH', body: JSON.stringify(patch) })
 }
+
+/** 회원 탈퇴. 계정과 즐겨찾기가 함께 사라진다. */
+export function remove(): Promise<void> {
+  return request('/me', { method: 'DELETE' })
+}

@@ -100,6 +100,8 @@ Redis 없이도 서버는 정상 동작한다 (캐시를 건너뛰고 매번 man
 | `brand` | `tj` \| `kumyoung` \| `all` | `all` |
 | `limit` | 1 ~ 200 | `50` |
 | `offset` | 0 이상 | `0` |
+| `sort` | `release` \| `no` | `release` |
+| `korean` | `1`이면 한국어 곡도 표시 | 감춤 |
 
 검색어는 최대 100자.
 
@@ -291,4 +293,4 @@ cd server
 ./venv/bin/python -m pytest
 ```
 
-네트워크를 타지 않는다 (외부 API·DB·Redis 모두 대체). 153개.
+네트워크를 타지 않는다 (외부 API·DB·Redis 모두 대체). 161개.

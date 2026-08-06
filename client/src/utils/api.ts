@@ -19,6 +19,10 @@ interface SearchParams {
   offset?: number
   /** 공식 사이트까지 뒤진다. 느리지만 결과가 완전하다. */
   full?: boolean
+  /** 'release' 최신순 | 'no' 곡번호순 */
+  sort?: string
+  /** 한국어로 된 곡도 보일지 */
+  korean?: boolean
   signal?: AbortSignal
 }
 
@@ -29,12 +33,16 @@ export async function searchSongs({
   limit,
   offset,
   full,
+  sort,
+  korean,
   signal,
 }: SearchParams): Promise<SearchResponse> {
   const params = new URLSearchParams({ q, type, brand })
   if (limit !== undefined) params.set('limit', String(limit))
   if (offset !== undefined) params.set('offset', String(offset))
   if (full) params.set('full', '1')
+  if (sort) params.set('sort', sort)
+  if (korean) params.set('korean', '1')
 
   const response = await fetch(`/api/search?${params}`, { signal })
 

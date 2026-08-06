@@ -68,3 +68,8 @@ def remove(user_id, brand, song_no):
         "DELETE FROM favorites WHERE user_id = %s AND brand = %s AND song_no = %s",
         [(user_id, brand, song_no)],
     )
+
+
+def clear(user_id):
+    """담아둔 곡을 모두 지운다."""
+    return db.execute_many("DELETE FROM favorites WHERE user_id = %s", [(user_id,)])

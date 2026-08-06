@@ -34,8 +34,10 @@ export interface SearchResponse {
   type: SearchType
   brand: BrandFilter
   cached: boolean
-  /** 전체 결과 수 (현재 페이지 수가 아니다) */
+  /** 전체 번호 수 — 같은 곡이 두 브랜드에 있으면 2로 센다 */
   total: number
+  /** 전체 곡 수 = 화면에 보일 카드 수. 표시에는 이걸 쓴다. */
+  songs: number
   returned: number
   limit: number
   offset: number

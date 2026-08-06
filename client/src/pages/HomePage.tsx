@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 
 import { SearchInput } from '../components/SearchInput'
 import { Segmented, type SegmentOption } from '../components/Segmented'
@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll'
 import { useSearch } from '../hooks/useSearch'
+import { useSettings } from '../hooks/useSettings'
 import { countMatched, filterByBrand } from '../utils/groups'
 import type { BrandFilter, SearchType } from '../types/karaoke'
 import './HomePage.css'
@@ -24,10 +25,24 @@ const BRAND_OPTIONS: SegmentOption<BrandFilter>[] = [
   { value: 'kumyoung', label: '금영', tone: 'kumyoung' },
 ]
 
-export function HomePage() {
-  const [query, setQuery] = useState('')
-  const [type, setType] = useState<SearchType>('song')
-  const [brand, setBrand] = useState<BrandFilter>('all')
+export interface SearchState {
+  query: string
+  setQuery: (value: string) => void
+  type: SearchType
+  setType: (value: SearchType) => void
+  brand: BrandFilter
+  setBrand: (value: BrandFilter) => void
+}
+
+/**
+ * 검색 상태는 App이 들고 있다.
+ *
+ * 여기서 useState로 두면 설정 탭에 다녀오는 순간 컴포넌트가 사라지면서
+ * 검색어까지 날아간다. 설정을 바꾸고 돌아와 결과를 확인하는 흐름이
+ * 깨지므로 위로 올렸다.
+ */
+export function HomePage({ query, setQuery, type, setType, brand, setBrand }: SearchState) {
+  const { settings } = useSettings()
 
   const {
     groups: allGroups,
@@ -41,7 +56,7 @@ export function HomePage() {
     error,
     pending,
     loadMore,
-  } = useSearch(query, type)
+  } = useSearch(query, type, { sort: settings.sort, korean: settings.showKorean })
   const { session } = useAuth()
   const { toggle, has } = useBookmarks(Boolean(session))
 

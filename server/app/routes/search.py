@@ -21,6 +21,8 @@ def search_songs():
             limit=request.args.get("limit"),
             offset=request.args.get("offset"),
             full=request.args.get("full") in ("1", "true"),
+            sort=request.args.get("sort", "release"),
+            include_korean=request.args.get("korean") in ("1", "true"),
         )
     except SearchError as exc:
         return jsonify({"error": "invalid_request", "message": str(exc)}), 400

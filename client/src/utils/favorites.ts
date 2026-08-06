@@ -47,3 +47,8 @@ export function add(songs: FavoriteSong[]): Promise<{ saved: number }> {
 export function remove(song: FavoriteSong): Promise<void> {
   return request(`/${song.brand}/${encodeURIComponent(song.no)}`, { method: 'DELETE' })
 }
+
+/** 담아둔 곡을 전부 지운다. */
+export function clear(): Promise<void> {
+  return request('', { method: 'DELETE' })
+}

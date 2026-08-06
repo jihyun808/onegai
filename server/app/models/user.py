@@ -89,3 +89,8 @@ def update_profile(user_id, username=None, avatar=None):
     if affected == 0 and username is not None and current is None:
         return None
     return current
+
+
+def delete(user_id):
+    """계정을 지운다. 즐겨찾기·검색이력은 FK ON DELETE CASCADE로 함께 사라진다."""
+    return db.execute_many("DELETE FROM users WHERE id = %s", [(user_id,)])

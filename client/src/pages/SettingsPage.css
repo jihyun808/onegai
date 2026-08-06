@@ -1,0 +1,169 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 18px 4px 0;
+}
+
+.settings__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings__title {
+  margin: 0 0 8px;
+  font-family: var(--font-hand);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--line-thin);
+}
+
+/* 세그먼트가 들어가는 줄은 아래로 쌓는다 */
+.settings__row--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.settings__label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 14px;
+}
+
+.settings__desc {
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.settings__action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--line-thin);
+  font-size: 14px;
+  text-align: left;
+}
+
+.settings__info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--line-thin);
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.settings__info span:last-child {
+  color: var(--ink);
+}
+
+.settings__info--link {
+  text-decoration: none;
+}
+
+.settings__legal {
+  margin: 12px 2px 0;
+  color: var(--ink-faint);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* 켜짐/꺼짐 스위치 */
+.settings__switch {
+  flex-shrink: 0;
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border: 1.5px solid var(--line-thin);
+  border-radius: var(--radius-pill);
+  background: var(--ivory-deep);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.settings__switch.is-on {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.settings__knob {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--paper);
+  transform: translateY(-50%);
+  transition: left 0.15s ease;
+}
+
+.settings__switch.is-on .settings__knob {
+  left: 20px;
+}
+
+/* 되돌릴 수 없는 동작이라 눈에 띄되 먼저 눌리지 않게 아래에 둔다 */
+.settings__withdraw {
+  align-self: flex-start;
+  padding: 8px 2px;
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.settings__notice {
+  margin: 0 2px;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+}
+
+.settings__confirm {
+  margin: 0 0 16px;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.settings__confirm-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.settings__cancel,
+.settings__danger {
+  flex: 1;
+  padding: 11px;
+  border-radius: var(--radius-pill);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.settings__cancel {
+  border: 1.5px solid var(--line-thin);
+  color: var(--ink-soft);
+}
+
+.settings__danger {
+  background: var(--kumyoung);
+  color: var(--paper);
+}

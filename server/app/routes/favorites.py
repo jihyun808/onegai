@@ -58,6 +58,14 @@ def add_favorites():
     return jsonify({"saved": saved}), 201
 
 
+@bp.delete("")
+@login_required
+def clear_favorites():
+    """담아둔 곡을 전부 지운다."""
+    favorite.clear(session[SESSION_KEY])
+    return jsonify({"ok": True})
+
+
 @bp.delete("/<brand>/<song_no>")
 @login_required
 def remove_favorite(brand, song_no):

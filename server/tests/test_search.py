@@ -194,7 +194,7 @@ class TestResponseShape:
         payload = client.get("/api/search?q=ヨルシカ&type=singer&brand=all").get_json()
         assert set(payload) == {
             "query", "type", "brand", "cached",
-            "total", "counts", "matched", "results", "groups", "complete",
+            "total", "songs", "counts", "matched", "results", "groups", "complete",
         } | PAGING_KEYS
 
     def test_non_ascii_is_not_escaped(self, client, two_brands):
@@ -207,3 +207,92 @@ class TestResponseShape:
         payload = client.get("/api/health").get_json()
         assert payload["status"] == "ok"
         assert payload["redis"] is False  # 테스트에서는 캐시 비활성
+
+
+class TestSongCount:
+    """화면은 같은 곡을 한 장으로 묶는다. 숫자도 그에 맞아야 한다."""
+
+    def test_songs_counts_cards_not_numbers(self, app, two_brands):
+        with app.app_context():
+            result = search_service.search("ヨルシカ", "singer", "all")
+
+        # 花に亡霊은 양쪽에 있어 번호가 2개, 카드는 1장
+        assert result["total"] == 3, "번호 수"
+        assert result["songs"] == 2, "곡 수 = 카드 수"
+        assert result["songs"] == len(result["groups"])
+
+    def test_songs_covers_all_pages(self, app, fake_manana):
+        """페이지에 잘려도 전체 곡 수를 알려줘야 한다."""
+        fake_manana.by_brand["tj"] = [
+            entry("tj", str(i), f"曲{i}", "ヨルシカ", "2026-01-01") for i in range(80)
+        ]
+        with app.app_context():
+            result = search_service.search("ヨルシカ", "singer", "tj", limit=10)
+
+        assert result["songs"] == 80
+        assert len(result["groups"]) == 10
+
+
+class TestSortOption:
+    @pytest.fixture
+    def mixed(self, fake_manana):
+        # 번호와 발매일 순서가 어긋나게 둔다 — 정렬이 실제로 바뀌는지 보려고
+        fake_manana.by_brand["tj"] = [
+            entry("tj", "10", "曲A", "ヨルシカ", "2020-01-01"),
+            entry("tj", "90", "曲B", "ヨルシカ", "2010-01-01"),
+            entry("tj", "50", "曲C", "ヨルシカ", "2026-01-01"),
+        ]
+        return fake_manana
+
+    def _numbers(self, result):
+        return [s["no"] for s in result["results"]["tj"]]
+
+    def test_release_order_is_default(self, app, mixed):
+        with app.app_context():
+            result = search_service.search("ヨルシカ", "singer", "tj")
+        assert self._numbers(result) == ["50", "10", "90"]
+
+    def test_number_order(self, app, mixed):
+        with app.app_context():
+            result = search_service.search("ヨルシカ", "singer", "tj", sort="no")
+        assert self._numbers(result) == ["90", "50", "10"]
+
+    def test_number_order_is_numeric_not_lexical(self, app, fake_manana):
+        """문자열로 정렬하면 9가 10보다 뒤로 간다."""
+        fake_manana.by_brand["tj"] = [
+            entry("tj", n, f"曲{n}", "ヨルシカ", "2026-01-01") for n in ["9", "10", "100"]
+        ]
+        with app.app_context():
+            result = search_service.search("ヨルシカ", "singer", "tj", sort="no")
+        assert self._numbers(result) == ["100", "10", "9"]
+
+
+class TestKoreanToggle:
+    @pytest.fixture
+    def mixed(self, fake_manana):
+        fake_manana.by_brand["tj"] = [
+            entry("tj", "1", "初音ミクの消失", "cosMo@暴走P"),
+            entry("tj", "2", "구해 줘 (드라마\"미미쿠스\")", "ENHYPEN"),
+        ]
+        return fake_manana
+
+    def test_hidden_by_default(self, app, mixed):
+        with app.app_context():
+            result = search_service.search("미쿠", "song", "tj", full=True)
+        assert [g["title"] for g in result["groups"]] == ["初音ミクの消失"]
+
+    def test_shown_when_enabled(self, app, mixed):
+        with app.app_context():
+            result = search_service.search(
+                "미쿠", "song", "tj", full=True, include_korean=True
+            )
+        assert len(result["groups"]) == 2
+
+    def test_uses_separate_cache(self, app, mixed, fake_redis):
+        """켜고 끈 결과가 서로 섞이면 안 된다."""
+        with app.app_context():
+            search_service.search("미쿠", "song", "tj", full=True)
+            with_korean = search_service.search(
+                "미쿠", "song", "tj", full=True, include_korean=True
+            )
+        assert len(with_korean["groups"]) == 2

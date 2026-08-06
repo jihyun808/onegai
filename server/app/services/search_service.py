@@ -108,10 +108,15 @@ def _validate(keyword, search_type, brand):
     return keyword, search_type, _validate_brand(brand)
 
 
-def _cache_key(keyword, search_type, brand):
-    # 표기 흔들림만 흡수한다. 공백/기호를 지우면 서로 다른 검색어가
-    # 같은 키를 공유해 결과가 섞인다. normalize_query 주석 참고.
-    return cache.make_key(search_type, brand, normalize_query(keyword))
+def _cache_key(keyword, search_type, brand, include_korean=False):
+    """표기 흔들림만 흡수한다. 공백/기호를 지우면 서로 다른 검색어가
+    같은 키를 공유해 결과가 섞인다. normalize_query 주석 참고.
+
+    정렬 기준은 키에 넣지 않는다 — 같은 결과를 다르게 늘어놓을 뿐이다.
+    한국곡 포함 여부는 결과 자체가 달라지므로 넣는다.
+    """
+    key = cache.make_key(search_type, brand, normalize_query(keyword))
+    return f"{key}:ko" if include_korean else key
 
 
 def _target_brands(brand):
@@ -129,9 +134,21 @@ def _group_by_brand(items, brand):
     return grouped
 
 
+# 사용자가 고를 수 있는 정렬 기준
+SORT_RELEASE = "release"
+SORT_NUMBER = "no"
+SORT_OPTIONS = (SORT_RELEASE, SORT_NUMBER)
+
+
 def _sort_key(item):
     # 최신 발매순, 같은 날짜면 번호순
     return (item["release"] or "", item["no"] or "")
+
+
+def _number_key(item):
+    """곡번호순. 번호는 문자열이라 그냥 정렬하면 9가 10보다 뒤로 간다."""
+    no = item["no"] or ""
+    return (no.isdigit(), int(no) if no.isdigit() else 0, no)
 
 
 # 브랜드별 공식 사이트 스크래퍼와, 켜고 끄는 설정 키
@@ -388,13 +405,13 @@ def _build_groups(items):
 
 
 def search(keyword, search_type="song", brand=ALL_BRANDS, limit=None, offset=None,
-           full=False):
+           full=False, sort=SORT_RELEASE, include_korean=False):
     """검색 결과를 브랜드별로 그룹핑해 반환한다."""
     keyword, search_type, brand = _validate(keyword, search_type, brand)
     limit, offset = _validate_paging(limit, offset)
 
     # 1차(DB만)와 2차(공식 포함)는 결과가 다르므로 캐시도 나눈다
-    key = _cache_key(keyword, search_type, brand)
+    key = _cache_key(keyword, search_type, brand, include_korean)
     if not full:
         key += ":quick"
     cached = cache.get_json(key)
@@ -429,7 +446,8 @@ def search(keyword, search_type="song", brand=ALL_BRANDS, limit=None, offset=Non
         items = [
             i
             for i in normalize_entries(raw)
-            if i["brand"] in allowed and not _is_korean_song(i)
+            if i["brand"] in allowed
+            and (include_korean or not _is_korean_song(i))
         ]
         items.sort(key=_sort_key, reverse=True)
 
@@ -438,6 +456,9 @@ def search(keyword, search_type="song", brand=ALL_BRANDS, limit=None, offset=Non
         else:
             cache.set_json(key, items, ttl=EMPTY_CACHE_TTL)
         from_cache = False
+
+    if sort == SORT_NUMBER:
+        items = sorted(items, key=_number_key, reverse=True)
 
     return _build_response(
         items,
@@ -467,7 +488,11 @@ def _build_response(
     payload = {
         "brand": brand,
         "cached": from_cache,
+        # total은 번호 수, songs는 곡 수다.
+        # 화면은 같은 곡을 한 장으로 묶어 보여주므로 카드 수와 맞는 것은 songs다.
+        # (태진 1 + 금영 1 = total 2 이지만 카드는 1장)
         "total": total,
+        "songs": len(_build_groups(items)),
         # counts / matched / groups 는 모두 '현재 페이지' 기준이다.
         "counts": {b: len(v) for b, v in grouped.items()},
         "matched": sum(1 for g in groups if g["both"]),

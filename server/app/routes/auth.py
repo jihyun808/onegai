@@ -112,3 +112,16 @@ def update_me():
         return _fail(exc)
 
     return jsonify(updated)
+
+
+@bp.delete("/me")
+@login_required
+def delete_me():
+    """회원 탈퇴.
+
+    즐겨찾기·검색이력은 FK ON DELETE CASCADE로 함께 지워진다.
+    되돌릴 수 없으므로 클라이언트에서 한 번 더 확인받는다.
+    """
+    user.delete(session[SESSION_KEY])
+    session.clear()
+    return jsonify({"ok": True})

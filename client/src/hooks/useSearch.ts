@@ -10,7 +10,7 @@ const PAGE_SIZE = 50
 
 interface UseSearchResult {
   groups: SongGroup[]
-  /** 전체 결과 수 (지금까지 불러온 수가 아니다) */
+  /** 전체 곡 수 = 끝까지 스크롤했을 때 보일 카드 수 */
   total: number
   /** 지금까지 불러온 원본 항목 수 — 다음 페이지 offset으로도 쓴다 */
   loaded: number
@@ -36,8 +36,13 @@ const EMPTY: SongGroup[] = []
  * 브랜드는 인자로 받지 않는다. 항상 '전체'로 받아 두고 화면에서 거른다.
  * 탭을 누를 때마다 서버를 다시 부르면 4초를 또 기다리게 된다.
  */
-export function useSearch(query: string, type: SearchType): UseSearchResult {
+export function useSearch(
+  query: string,
+  type: SearchType,
+  options: { sort?: string; korean?: boolean } = {},
+): UseSearchResult {
   const brand: BrandFilter = 'all'
+  const { sort, korean } = options
   const debouncedQuery = useDebounce(query, DEBOUNCE_MS)
   const trimmed = debouncedQuery.trim()
 
@@ -85,11 +90,13 @@ export function useSearch(query: string, type: SearchType): UseSearchResult {
       brand,
       limit: PAGE_SIZE,
       offset: 0,
+      sort,
+      korean,
       signal: controller.signal,
     })
       .then((response) => {
         setGroups(response.groups)
-        setTotal(response.total)
+        setTotal(response.songs)
         setLoaded(response.returned)
         setHasMore(response.has_more)
         setLoading(false)
@@ -107,11 +114,13 @@ export function useSearch(query: string, type: SearchType): UseSearchResult {
           limit: PAGE_SIZE,
           offset: 0,
           full: true,
+          sort,
+          korean,
           signal: controller.signal,
         })
           .then((full) => {
             setGroups((prev) => appendNew(prev, full.groups))
-            setTotal(full.total)
+            setTotal(full.songs)
             setLoaded(full.returned)
             setHasMore(full.has_more)
             setCompleting(false)
@@ -135,7 +144,7 @@ export function useSearch(query: string, type: SearchType): UseSearchResult {
       })
 
     return () => controller.abort()
-  }, [trimmed, type])
+  }, [trimmed, type, sort, korean])
 
   /**
    * 사용자가 직접 공식까지 뒤지게 한다.
@@ -157,11 +166,13 @@ export function useSearch(query: string, type: SearchType): UseSearchResult {
       limit: PAGE_SIZE,
       offset: 0,
       full: true,
+      sort,
+      korean,
       signal: controller.signal,
     })
       .then((full) => {
         setGroups((prev) => appendNew(prev, full.groups))
-        setTotal(full.total)
+        setTotal(full.songs)
         setLoaded(full.returned)
         setHasMore(full.has_more)
         setCompleting(false)
@@ -170,7 +181,7 @@ export function useSearch(query: string, type: SearchType): UseSearchResult {
       .catch(() => {
         if (!controller.signal.aborted) setCompleting(false)
       })
-  }, [trimmed, type, brand, completing])
+  }, [trimmed, type, brand, sort, korean, completing])
 
   const loadMore = useCallback(() => {
     if (loadingMoreRef.current || loading || !hasMore || !trimmed) return
@@ -187,12 +198,14 @@ export function useSearch(query: string, type: SearchType): UseSearchResult {
       brand,
       limit: PAGE_SIZE,
       offset: loaded,
+      sort,
+      korean,
       signal: controller.signal,
     })
       .then((response) => {
         // 같은 곡이 페이지에 걸쳐 나뉘어 올 수 있어 match_key로 합친다
         setGroups((prev) => mergeGroups(prev, response.groups))
-        setTotal(response.total)
+        setTotal(response.songs)
         setLoaded((prev) => prev + response.returned)
         setHasMore(response.has_more)
         setLoadingMore(false)
@@ -204,7 +217,7 @@ export function useSearch(query: string, type: SearchType): UseSearchResult {
         setLoadingMore(false)
         loadingMoreRef.current = false
       })
-  }, [trimmed, type, loaded, hasMore, loading])
+  }, [trimmed, type, sort, korean, loaded, hasMore, loading])
 
   return {
     groups,
