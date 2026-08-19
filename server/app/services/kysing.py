@@ -22,6 +22,8 @@ from urllib.parse import urlencode
 import requests
 from flask import current_app
 
+from app.utils.normalize import normalize_text
+
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://kysing.kr/search/"
@@ -49,6 +51,23 @@ _TAG = re.compile(r"<[^>]+>")
 # 곡명 칸에는 가사 전문이 딸려 온다. '닫기' 뒤부터가 가사다.
 _LYRICS_SPLIT = re.compile(r"\s*닫기\s*")
 
+# 가사 팝업. 곡명 칸 안에 통째로 들어 있어서 따로 요청할 필요가 없다.
+_LYRICS_CONT = re.compile(r'<div class="LyricsCont">(.*?)</div>', re.S)
+_LYRICS_TIT = re.compile(r'<p class="LyricsTit">.*?</p>', re.S)
+_BR = re.compile(r"<br\s*/?>", re.I)
+
+# 가사는 대체로 세 줄이 한 묶음이다: 한글 발음 / 후리가나 / 일본어 원문.
+# 다만 'La la la' 같은 도입부는 발음이 필요 없어 묶음이 통째로 어긋난다.
+# 그래서 줄 수를 세지 않고 줄마다 무엇인지를 보고 짝을 짓는다.
+_HANGUL = re.compile(r"[가-힣]")
+# 후리가나는 루비 위치 정보가 빠진 채로 온다 (`きょ/う//かん/ぱい/`).
+# 히라가나와 구분선만 남은 줄인데, **구분선이 반드시 하나는 있다**.
+# 이 조건이 없으면 `ずっと ずっと ずっと` 같은 히라가나 가사가 통째로 버려진다.
+_RUBY = re.compile(r"^(?=[^/]*/)[ぁ-ゖー/\s]*$")
+
+# 가사를 찾을 때 가수 검색을 몇 페이지까지 훑을지. 곡이 많은 가수를 위한 여유다.
+LYRICS_MAX_PAGES = 4
+
 # 출시월은 '2025.11' 형태다. manana의 'YYYY-MM-DD'에 맞춘다.
 _RELEASE = re.compile(r"^(\d{4})\.(\d{1,2})$")
 
@@ -71,26 +90,35 @@ def _normalize_release(value):
     return f"{year}-{int(month):02d}-01"
 
 
+def _row_blocks(page_html):
+    """결과 행들의 칸 목록. 첫 블록은 헤더라 건너뛰고, 칸이 모자란 행은 버린다."""
+    blocks = []
+    for block in _ROW_BLOCK.findall(page_html)[1:]:
+        cells = _CELL.findall(block)
+        if len(cells) >= 7:
+            blocks.append(cells)
+    return blocks
+
+
+def _title_singer(cells):
+    """곡명 칸은 "제목 아티스트 닫기 <가사...>" 꼴이다. 제목과 가수만 떼어낸다."""
+    title = _LYRICS_SPLIT.split(_text(cells[2]))[0]
+    singer = _text(cells[3])
+    if singer and title.endswith(singer):
+        title = title[: -len(singer)].strip()
+    return title, singer
+
+
 def _parse(page_html):
     """결과 행을 manana 스키마로 변환한다. 첫 블록은 헤더라 건너뛴다."""
     rows = []
 
-    for block in _ROW_BLOCK.findall(page_html)[1:]:
-        cells = _CELL.findall(block)
-        if len(cells) < 7:
-            continue
-
+    for cells in _row_blocks(page_html):
         no = _text(cells[1])
         if not no.isdigit():
             continue
 
-        # 곡명 칸: "제목 아티스트 닫기 <가사...>" — 가사를 떼어낸다
-        title_cell = _LYRICS_SPLIT.split(_text(cells[2]))[0]
-        singer = _text(cells[3])
-        # 제목 뒤에 아티스트가 덧붙어 오므로 잘라낸다
-        title = title_cell
-        if singer and title.endswith(singer):
-            title = title[: -len(singer)].strip()
+        title, singer = _title_singer(cells)
 
         rows.append(
             {
@@ -105,6 +133,43 @@ def _parse(page_html):
         )
 
     return rows
+
+
+def _parse_lyrics(title_cell):
+    """곡명 칸에 딸려 온 가사 팝업을 [{ko, ja}, ...]로 바꾼다. 못 읽으면 None.
+
+    한글이 있으면 발음, 히라가나와 구분선뿐이면 후리가나, 나머지는 원문으로
+    본다. 발음 줄을 들고 있다가 다음 원문 줄과 짝지어 준다.
+
+    줄 수로 세 줄씩 끊지 않는 이유 — `ミスター`처럼 'La la la' 도입부로
+    시작하는 곡은 발음 줄이 없어서 그 뒤 가사가 통째로 한 칸씩 밀린다.
+    """
+    block = _LYRICS_CONT.search(title_cell)
+    if not block:
+        return None
+
+    body = _LYRICS_TIT.sub("", block.group(1))
+
+    lines = []
+    pending = None
+
+    for row in (_text(part) for part in _BR.split(body)):
+        if not row or _RUBY.match(row):
+            continue
+
+        if _HANGUL.search(row):
+            # 발음이 연달아 나오면 앞엣것은 짝을 못 찾은 것이다
+            if pending is not None:
+                lines.append({"ko": pending, "ja": ""})
+            pending = row
+        else:
+            lines.append({"ko": pending or "", "ja": row})
+            pending = None
+
+    if pending is not None:
+        lines.append({"ko": pending, "ja": ""})
+
+    return lines or None
 
 
 def _fetch(keyword, category, page):
@@ -185,3 +250,48 @@ def search(keyword, search_type="song"):
         size = PAGE_BATCH
 
     return list(collected.values())
+
+
+def find_lyrics(title, singer=""):
+    """곡 제목·가수로 검색 결과를 뒤져 가사를 찾는다. 없으면 None.
+
+    가수 검색을 먼저 쓴다 — 금영 곡명 검색은 긴 일본어 제목에서 0건을
+    돌려주는 일이 잦은데(실측: `夜に駆ける` 0건, `YOASOBI` 15건) 가수명은
+    짧아서 그 문제를 덜 탄다. 그래도 못 찾으면 곡명으로 한 번 더 본다.
+    """
+    target = normalize_text(title)
+    if not target:
+        return None
+
+    attempts = []
+    if singer:
+        attempts.append((CATEGORY["singer"], singer, LYRICS_MAX_PAGES))
+    attempts.append((CATEGORY["song"], title, 1))
+
+    for category, keyword, max_pages in attempts:
+        for page in range(1, max_pages + 1):
+            try:
+                blocks = _row_blocks(_fetch(keyword, category, page))
+                # search()와 같은 이유로 첫 페이지가 비면 한 번 더 본다 —
+                # 금영은 부하가 걸리면 결과 없는 페이지를 간헐적으로 돌려준다.
+                # 이걸 진짜 0건으로 받아들이면 '가사 없음'이 하루 동안 캐시된다.
+                if page == 1 and not blocks:
+                    blocks = _row_blocks(_fetch(keyword, category, 1))
+            except KysingError as exc:
+                logger.info("금영 가사 조회 실패 (%s): %s", keyword, exc)
+                break
+
+            for cells in blocks:
+                row_title, row_singer = _title_singer(cells)
+                if normalize_text(row_title) != target:
+                    continue
+
+                lines = _parse_lyrics(cells[2])
+                if lines:
+                    return {"title": row_title, "singer": row_singer, "lines": lines}
+
+            # 덜 찬 페이지면 마지막이다
+            if len(blocks) < PAGE_SIZE:
+                break
+
+    return None

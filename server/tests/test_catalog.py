@@ -93,10 +93,12 @@ class TestTwoPhase:
 
     def test_phases_use_separate_cache(self, app, fake_db, wired, fake_redis):
         """1차 결과가 2차 요청에 재사용되면 안 된다."""
-        fake_db.rows = [entry("tj", "1", "곡", "ヨルシカ", "2026-01-01")]
+        # 가수명을 공식 응답과 맞춘다. 다르게 두면 노이즈 필터가 공식 결과를
+        # 걷어내 이 테스트가 캐시가 아니라 필터를 재는 것이 된다.
+        fake_db.rows = [entry("tj", "1", "アイドル", "YOASOBI", "2026-01-01")]
         with app.app_context():
-            quick = search_service.search("ヨルシカ", "singer", "all")
-            full = search_service.search("ヨルシカ", "singer", "all", full=True)
+            quick = search_service.search("YOASOBI", "singer", "all")
+            full = search_service.search("YOASOBI", "singer", "all", full=True)
 
         assert quick["total"] == 1
         assert full["total"] == 3  # DB 1 + 공식 2

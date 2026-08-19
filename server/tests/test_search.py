@@ -296,3 +296,51 @@ class TestKoreanToggle:
                 "미쿠", "song", "tj", full=True, include_korean=True
             )
         assert len(with_korean["groups"]) == 2
+
+
+class TestSingerNoise:
+    """노래방 DB는 가수명을 부분 문자열로 찾는다 (DECISIONS 1번).
+
+    실제 태진 응답 기준으로, 'Ado' 70건 중 36건이 다른 가수였다 (2026-08-19).
+    """
+
+    @pytest.fixture
+    def ado(self, fake_manana):
+        fake_manana.by_brand["tj"] = [
+            entry("tj", "1", "唱", "Ado"),
+            entry("tj", "2", "桜日和とタイムマシン", "Ado,初音ミク"),
+            entry("tj", "3", "Baby", "ADOY"),
+            entry("tj", "4", "밤이되니까", "ADORA(Feat.나띠)"),
+            entry("tj", "5", "HEY CHILD", "X Ambassadors"),
+        ]
+        return fake_manana
+
+    def test_drops_singers_that_merely_contain_the_keyword(self, app, ado):
+        with app.app_context():
+            result = search_service.search("Ado", "singer", "tj", full=True,
+                                           include_korean=True)
+        assert {g["singer"] for g in result["groups"]} == {"Ado", "Ado,初音ミク"}
+
+    def test_keeps_collaborations(self, app, ado):
+        """'Ado,初音ミク'는 통째로 비교하면 사라진다. 쪼개서 비교해야 남는다."""
+        with app.app_context():
+            result = search_service.search("Ado", "singer", "tj", full=True,
+                                           include_korean=True)
+        assert "桜日和とタイムマシン" in [g["title"] for g in result["groups"]]
+
+    def test_song_search_is_untouched(self, app, fake_manana):
+        """곡명 검색은 부분 일치가 오히려 필요하다."""
+        fake_manana.by_brand["tj"] = [entry("tj", "1", "唱", "ADOY")]
+        with app.app_context():
+            result = search_service.search("唱", "song", "tj", full=True)
+        assert len(result["groups"]) == 1
+
+    def test_falls_back_when_nothing_matches_exactly(self, app, fake_manana):
+        """'미쿠'로 '初音ミク'를 찾는 검색. 거르면 화면이 통째로 빈다."""
+        fake_manana.by_brand["tj"] = [
+            entry("tj", "1", "初音ミクの消失", "初音ミク"),
+            entry("tj", "2", "ロミオとシンデレラ", "初音ミク"),
+        ]
+        with app.app_context():
+            result = search_service.search("미쿠", "singer", "tj", full=True)
+        assert len(result["groups"]) == 2

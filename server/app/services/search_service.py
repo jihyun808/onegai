@@ -9,7 +9,12 @@ from flask import current_app
 from app.models import song
 from app.services import kysing, manana, tjmedia
 from app.utils import cache
-from app.utils.normalize import normalize_entries, normalize_query
+from app.utils.normalize import (
+    normalize_entries,
+    normalize_query,
+    normalize_text,
+    split_singers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +58,37 @@ def _is_korean_song(item):
     """
     text = f"{item.get('title', '')} {item.get('singer', '')}"
     return bool(_KOREAN.search(text)) and not _JAPANESE.search(text)
+
+
+def _singer_matches(keyword, item):
+    """가수 검색 결과가 정말 그 가수의 곡인지.
+
+    노래방 DB는 가수명을 부분 문자열로 찾는다. 'Ado'를 검색하면
+    'ADOY', 'ADORA', 'Owen Ovadoz'가 딸려 온다 (70건 중 36건, 2026-08-19).
+
+    **이름을 통째로 비교하지 않고 쪼갠 뒤 비교한다.** 통째로 보면
+    'Ado,初音ミク'나 '아이유,박보검' 같은 합작곡이 함께 사라진다.
+    쪼개면 'ADOY'는 그대로 탈락하면서 합작곡은 살아남는다.
+    """
+    wanted = normalize_text(keyword)
+    if not wanted:
+        return True
+    return any(normalize_text(part) == wanted for part in split_singers(item.get("singer")))
+
+
+def _filter_singers(keyword, items):
+    """가수 검색 결과에서 이름만 겹친 남을 걷어낸다.
+
+    **하나도 안 남으면 거르기 전 결과를 그대로 쓴다.** 검색어가 이름의
+    일부일 때가 있다 — '미쿠'로 '初音ミク'를 찾는 식이다. 그런 검색은
+    정확 일치가 0건이라, 거르면 화면이 통째로 비어버린다.
+    지금까지와 같은 결과를 주는 편이 아무것도 안 주는 것보다 낫다.
+    """
+    kept = [i for i in items if _singer_matches(keyword, i)]
+    if not kept:
+        logger.debug("가수 정확 일치가 없어 거르지 않습니다: %r", keyword)
+        return items
+    return kept
 
 # 역조회는 곡마다 TJ를 한 번씩 부른다. 폭주를 막기 위해 상한을 둔다.
 LYRICS_CROSS_LOOKUP_LIMIT = 15
@@ -115,7 +151,14 @@ def _cache_key(keyword, search_type, brand, include_korean=False):
     정렬 기준은 키에 넣지 않는다 — 같은 결과를 다르게 늘어놓을 뿐이다.
     한국곡 포함 여부는 결과 자체가 달라지므로 넣는다.
     """
-    key = cache.make_key(search_type, brand, normalize_query(keyword))
+    # 'q'로 시작해 부가 기능 캐시와 이름 공간을 나눈다. 이게 없으면
+    # `type=lyrics` 검색과 `/api/lyrics` 조회가 같은 키를 쓴다 —
+    # `lyrics:all:yoasobi`가 "brand=all에서 yoasobi 가사 검색"이자
+    # "ALL(곡)/YOASOBI의 가사"로 읽혀 서로의 응답을 덮어쓴다.
+    # 'q2'의 2는 캐시 세대다. 가수 노이즈 필터(_filter_singers)가 들어가면서
+    # 같은 검색어의 결과 내용이 달라졌다. 이름을 안 바꾸면 배포 후 24시간 동안
+    # 거르기 전 결과가 캐시에서 그대로 나간다.
+    key = cache.make_key("q2", search_type, brand, normalize_query(keyword))
     return f"{key}:ko" if include_korean else key
 
 
@@ -449,6 +492,9 @@ def search(keyword, search_type="song", brand=ALL_BRANDS, limit=None, offset=Non
             if i["brand"] in allowed
             and (include_korean or not _is_korean_song(i))
         ]
+        if search_type == "singer":
+            items = _filter_singers(keyword, items)
+
         items.sort(key=_sort_key, reverse=True)
 
         if items:

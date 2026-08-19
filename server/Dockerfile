@@ -15,4 +15,5 @@ COPY . .
 
 EXPOSE 5001
 
-CMD ["python", "run.py"]
+# 기본은 운영용이다. 개발은 compose가 command로 덮어써서 리로더를 쓴다.
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "run:app"]

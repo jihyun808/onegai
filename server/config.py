@@ -49,8 +49,12 @@ class Config:
     DEEPL_API_KEY = os.getenv("DEEPL_API_KEY", "")
     DEEPL_TIMEOUT = float(os.getenv("DEEPL_TIMEOUT", 8))
 
-    MUSIXMATCH_API_KEY = os.getenv("MUSIXMATCH_API_KEY", "")
-    MUSIXMATCH_TIMEOUT = float(os.getenv("MUSIXMATCH_TIMEOUT", 8))
+    # 가사는 금영 검색 결과에 딸려 오므로 KYSING_ENABLED를 따른다. 별도 키가 없다.
+    # 권리 확인은 진행 중이다 — DECISIONS.md 37번.
+    #
+    # 가사만 따로 끄는 스위치. 권리자가 안 된다고 하면 이것만 내리면 된다.
+    # KYSING_ENABLED를 내리면 금영 공식 '검색'까지 같이 꺼진다(manana 폴백).
+    LYRICS_ENABLED = os.getenv("LYRICS_ENABLED", "true").lower() != "false"
 
     # 미리듣기는 iTunes Search API를 쓴다. 키가 필요 없어 항상 켜져 있다.
     ITUNES_TIMEOUT = float(os.getenv("ITUNES_TIMEOUT", 8))

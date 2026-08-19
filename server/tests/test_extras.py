@@ -3,7 +3,10 @@
 import pytest
 import requests
 
-from app.services import lyrics, preview, translate
+from app.services import kysing, lyrics, preview, translate
+from app.services.search_service import _cache_key
+from app.utils import cache
+from app.utils.normalize import normalize_text
 
 
 class FakeResponse:
@@ -30,11 +33,14 @@ class TestGracefulDisable:
         assert res.status_code == 200
         assert res.get_json()["available"] is False
 
-    def test_lyrics_without_key(self, client, app):
-        app.config["MUSIXMATCH_API_KEY"] = ""
+    def test_lyrics_without_source(self, client, app):
+        app.config["KYSING_ENABLED"] = False
         res = client.get("/api/lyrics?title=花に亡霊&singer=ヨルシカ")
         assert res.status_code == 200
-        assert res.get_json()["available"] is False
+        body = res.get_json()
+        assert body["available"] is False
+        # 가사가 없어도 찾아갈 곳은 준다
+        assert body["search_url"].startswith("https://www.google.com/search?q=")
 
     def test_no_network_call_without_key(self, app, monkeypatch):
         """키가 없으면 외부를 아예 부르지 않는다."""
@@ -48,7 +54,7 @@ class TestGracefulDisable:
 
     def test_health_reports_feature_flags(self, client, app):
         app.config["DEEPL_API_KEY"] = ""
-        app.config["MUSIXMATCH_API_KEY"] = "x"
+        app.config["KYSING_ENABLED"] = True
         features = client.get("/api/health").get_json()["features"]
         assert features == {"translate": False, "lyrics": True, "preview": True}
 
@@ -163,43 +169,148 @@ class TestPreview:
             assert preview.find("花に亡霊")["available"] is False
 
 
+def kysing_page(rows):
+    """금영 검색 결과 HTML을 흉내 낸다. 첫 블록은 실제 사이트처럼 헤더다.
+
+    rows: [(제목, 가수, [(한글발음, 후리가나, 원문), ...]), ...]
+    """
+    html = ['<ul class="search_chart_list clear"><li>헤더</li></ul>']
+    for title, singer, lines in rows:
+        body = "".join(
+            f"{ko}<br />{ruby}<br />{ja}<br />" for ko, ruby, ja in lines
+        )
+        popup = (
+            f'<div id="LyricsView" class="LyricsWrap clear">'
+            f'<p class="LyricsClose">닫기</p>'
+            f'<div class="LyricsCont"><p class="LyricsTit">{title}</p>{body}</div></div>'
+            if lines
+            else ""
+        )
+        html.append(
+            '<ul class="search_chart_list clear">'
+            "<li>♡</li><li>12345</li>"
+            f'<li><span class="tit">{title}</span>'
+            f'<span class="tit mo-art">{singer}</span>{popup}</li>'
+            f"<li>{singer}</li><li>작곡</li><li>작사</li><li>2024.01</li>"
+            "</ul>"
+        )
+    return "".join(html)
+
+
+LINES = [
+    ("모오 와스레테", "わす/", "もう忘れて"),
+    ("시맛타카나", "", "しまったかな"),
+]
+
+
 class TestLyrics:
-    def _payload(self, status=200, body=None):
-        return {"message": {"header": {"status_code": status}, "body": body or {}}}
+    """가사는 금영 검색 결과 HTML에 딸려 온다. 세 줄 묶음을 갈라 쓴다."""
 
     def test_success(self, app, monkeypatch):
-        monkeypatch.setattr(requests, "get", lambda *a, **k: FakeResponse(self._payload(
-            body={"lyrics": {"lyrics_body": "가사 본문\n\n***\n상업적 이용 금지",
-                             "script_tracking_url": "http://t"}})))
-        app.config["MUSIXMATCH_API_KEY"] = "k"
+        monkeypatch.setattr(kysing, "_fetch", lambda *a, **k: kysing_page(
+            [("花に亡霊", "ヨルシカ", LINES)]))
         with app.app_context():
             result = lyrics.find("花に亡霊", "ヨルシカ")
         assert result["available"] is True
-        # 저작권 문구는 본문에서 떼어낸다
-        assert result["lyrics"] == "가사 본문"
-        assert result["partial"] is True
+        assert result["provider"] == "금영"
+        # 후리가나는 루비 위치가 빠져 있어 버리고, 발음과 원문만 남긴다
+        assert result["lines"] == [
+            {"ko": "모오 와스레테", "ja": "もう忘れて"},
+            {"ko": "시맛타카나", "ja": "しまったかな"},
+        ]
 
-    def test_nested_401_is_graceful(self, app, monkeypatch):
-        """Musixmatch는 오류일 때도 HTTP 200을 준다. 본문의 코드를 봐야 한다."""
-        monkeypatch.setattr(requests, "get",
-                            lambda *a, **k: FakeResponse(self._payload(401)))
-        app.config["MUSIXMATCH_API_KEY"] = "bad"
+    def test_matches_title_ignoring_brackets(self, app, monkeypatch):
+        """금영 제목에는 `("BEASTARS"OP)` 같은 꼬리표가 붙는다."""
+        monkeypatch.setattr(kysing, "_fetch", lambda *a, **k: kysing_page(
+            [('怪物 ("BEASTARS"OP)', "YOASOBI", LINES)]))
         with app.app_context():
-            assert lyrics.find("花", "ヨルシカ")["available"] is False
+            result = lyrics.find("怪物", "YOASOBI")
+        assert result["available"] is True
+        assert result["matched_title"] == '怪物 ("BEASTARS"OP)'
 
-    def test_quota_exceeded(self, app, monkeypatch):
-        monkeypatch.setattr(requests, "get",
-                            lambda *a, **k: FakeResponse(self._payload(402)))
-        app.config["MUSIXMATCH_API_KEY"] = "k"
+    def test_skips_other_songs_by_same_singer(self, app, monkeypatch):
+        monkeypatch.setattr(kysing, "_fetch", lambda *a, **k: kysing_page([
+            ("群青", "YOASOBI", [("군조오", "", "群青")]),
+            ("夜に駆ける", "YOASOBI", LINES),
+        ]))
         with app.app_context():
-            assert "한도" in lyrics.find("花", "ヨルシカ")["reason"]
+            result = lyrics.find("夜に駆ける", "YOASOBI")
+        assert result["matched_title"] == "夜に駆ける"
 
-    def test_not_found(self, app, monkeypatch):
-        monkeypatch.setattr(requests, "get",
-                            lambda *a, **k: FakeResponse(self._payload(404)))
-        app.config["MUSIXMATCH_API_KEY"] = "k"
+    def test_intro_without_pronunciation_keeps_rest_aligned(self, app, monkeypatch):
+        """'La la la' 도입부는 발음 줄이 없다. 여기서 밀리면 뒤가 통째로 어긋난다."""
+        page = (
+            '<ul class="search_chart_list clear"><li>헤더</li></ul>'
+            '<ul class="search_chart_list clear"><li>♡</li><li>44684</li>'
+            '<li><span class="tit">ミスター</span>'
+            '<p class="LyricsClose">닫기</p>'
+            '<div class="LyricsCont"><p class="LyricsTit">ミスター</p>'
+            "La la la<br />"
+            "싱그루 사이즈노 헤야데<br />//// へ/や /<br />シングルサイズの部屋で<br />"
+            "</div></li>"
+            "<li>YOASOBI</li><li>작곡</li><li>작사</li><li>2024.01</li></ul>"
+        )
+        monkeypatch.setattr(kysing, "_fetch", lambda *a, **k: page)
         with app.app_context():
-            assert lyrics.find("없는곡", "없는가수")["available"] is False
+            result = lyrics.find("ミスター", "YOASOBI")
+        assert result["lines"] == [
+            {"ko": "", "ja": "La la la"},
+            {"ko": "싱그루 사이즈노 헤야데", "ja": "シングルサイズの部屋で"},
+        ]
+
+    def test_hiragana_only_line_is_not_mistaken_for_furigana(self, app, monkeypatch):
+        """후리가나는 구분선이 있다. 그게 없으면 히라가나뿐이어도 가사 원문이다."""
+        monkeypatch.setattr(kysing, "_fetch", lambda *a, **k: kysing_page(
+            [("Pale Blue", "米津玄師", [("즛토 즛토", "", "ずっと ずっと")])]))
+        with app.app_context():
+            result = lyrics.find("Pale Blue", "米津玄師")
+        assert result["lines"] == [{"ko": "즛토 즛토", "ja": "ずっと ずっと"}]
+
+    def test_not_found_gives_search_link(self, app, monkeypatch):
+        monkeypatch.setattr(kysing, "_fetch", lambda *a, **k: kysing_page([]))
+        with app.app_context():
+            result = lyrics.find("없는곡", "없는가수")
+        assert result["available"] is False
+        assert "%EC%97%86%EB%8A%94%EA%B3%A1" in result["search_url"]
+
+    def test_upstream_error_is_graceful(self, app, monkeypatch):
+        def boom(*a, **k):
+            raise kysing.KysingError("죽음")
+
+        monkeypatch.setattr(kysing, "_fetch", boom)
+        with app.app_context():
+            result = lyrics.find("花に亡霊", "ヨルシカ")
+        assert result["available"] is False
+        assert result["search_url"]
+
+    def test_cached(self, app, monkeypatch, fake_redis):
+        calls = []
+        monkeypatch.setattr(kysing, "_fetch", lambda *a, **k: (
+            calls.append(1), kysing_page([("花に亡霊", "ヨルシカ", LINES)]))[1])
+        with app.app_context():
+            lyrics.find("花に亡霊", "ヨルシカ")
+            second = lyrics.find("花に亡霊", "ヨルシカ")
+        assert second["cached"] is True
+        assert second["available"] is True
+        assert len(calls) == 1
+
+    def test_lyrics_switch_does_not_touch_search(self, app, monkeypatch):
+        """`LYRICS_ENABLED=false`는 가사만 끈다. 검색은 그대로 돌아야 한다.
+
+        권리자가 가사만 안 된다고 할 때 쓰는 스위치다 (37번).
+        `KYSING_ENABLED`를 내리면 금영 공식 검색까지 꺼져 최신곡이 사라진다.
+        """
+        def boom(*a, **k):
+            raise AssertionError("가사가 꺼졌는데 금영을 호출했다")
+
+        monkeypatch.setattr(kysing, "_fetch", boom)
+        app.config["LYRICS_ENABLED"] = False
+        with app.app_context():
+            result = lyrics.find("花に亡霊", "ヨルシカ")
+            assert result["available"] is False
+            assert result["search_url"]
+            # 검색 쪽 스위치는 건드리지 않았다
+            assert app.config["KYSING_ENABLED"] is True
 
 
 class TestValidation:
@@ -210,7 +321,41 @@ class TestValidation:
     ])
     def test_empty_input_is_graceful(self, client, path, app):
         app.config["DEEPL_API_KEY"] = "k"
-        app.config["MUSIXMATCH_API_KEY"] = "k"
         res = client.get(path)
         assert res.status_code == 200
         assert res.get_json()["available"] is False
+
+
+class TestCacheNamespace:
+    """검색 캐시와 부가 기능 캐시가 이름 공간을 나눠 써야 한다."""
+
+    def test_lyrics_search_and_lyrics_lookup_do_not_collide(self, app):
+        """`type=lyrics` 검색과 `/api/lyrics` 조회는 셋 다 3토막이라 겹칠 수 있었다.
+
+        `lyrics:all:yoasobi`가 "brand=all에서 yoasobi 가사 검색"이면서
+        동시에 "ALL(곡)/YOASOBI의 가사"로 읽혔다.
+        """
+        with app.app_context():
+            search = _cache_key("YOASOBI", "lyrics", "all")
+            lookup = cache.make_key(
+                "lyrics", normalize_text("ALL"), normalize_text("YOASOBI")
+            )
+        assert search != lookup
+
+    def test_search_keys_are_namespaced(self, app):
+        with app.app_context():
+            assert _cache_key("花", "song", "tj").startswith(f"{cache.CACHE_PREFIX}:q2:")
+
+
+class TestLyricsLookupResilience:
+    def test_retries_when_first_page_comes_back_empty(self, app, monkeypatch):
+        """금영은 부하가 걸리면 빈 페이지를 간헐적으로 준다.
+
+        이걸 진짜 0건으로 받아들이면 '가사 없음'이 하루 동안 캐시된다.
+        """
+        pages = ["", kysing_page([("花に亡霊", "ヨルシカ", LINES)])]
+        monkeypatch.setattr(kysing, "_fetch", lambda *a, **k: pages.pop(0))
+        with app.app_context():
+            result = lyrics.find("花に亡霊", "ヨルシカ")
+        assert result["available"] is True
+        assert pages == []
