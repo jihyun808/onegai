@@ -83,3 +83,62 @@
 .song__mark.is-on {
   color: var(--ink);
 }
+
+.song__lyrics {
+  margin-top: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--line-thin);
+  border-radius: var(--radius-pill);
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/*
+ * 미리듣기 자리. 앨범아트를 받기 전에는 ▶만 있는 빈 칸이고,
+ * 받아오면 그 자리에 아트가 깔리고 아이콘이 그 위에 얹힌다.
+ */
+.song__play {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  border: 1.5px solid var(--line-thin);
+  border-radius: 10px;
+  color: var(--ink-soft);
+}
+
+.song__play:disabled {
+  opacity: 0.35;
+}
+
+.song__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.song__play-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+/* 아트 위에서는 선 아이콘이 묻힌다. 어두운 원을 깔아 띄운다 */
+.song__play:has(.song__art) .song__play-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgb(23 20 16 / 55%);
+  color: #fff;
+}
+
+.song__play.is-on {
+  border-color: var(--accent);
+  color: var(--accent);
+}

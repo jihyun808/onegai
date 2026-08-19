@@ -54,3 +54,20 @@ export function SettingsIcon(props: IconProps) {
     </Icon>
   )
 }
+
+export function PlayIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      {/* 다른 아이콘과 같은 선 굵기를 쓰려고 삼각형도 획으로 그린다 */}
+      <path d="M9 6.6 18 12l-9 5.4z" />
+    </Icon>
+  )
+}
+
+export function PauseIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M9.6 6.4v11.2M14.4 6.4v11.2" />
+    </Icon>
+  )
+}

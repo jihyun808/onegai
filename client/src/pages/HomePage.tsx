@@ -105,8 +105,12 @@ export function HomePage({ query, setQuery, type, setType, brand, setBrand }: Se
         <StateMessage title="검색에 실패했어요" description={error} />
       )}
 
-      {/* 공식까지 뒤지는 중에는 '없음'이라고 단정하지 않는다 */}
-      {hasQuery && !error && total === 0 && !busy && !loadingMore2 && (
+      {/*
+        공식까지 뒤지는 중에는 '없음'이라고 단정하지 않는다.
+        groups까지 보는 이유 — 카드가 떠 있는데 '없어요'가 함께 뜨는 일을 막는다.
+        다음 페이지 응답이 0건이면 total만 0으로 덮여서 그렇게 됐었다.
+      */}
+      {hasQuery && !error && total === 0 && groups.length === 0 && !busy && !loadingMore2 && (
         <StateMessage
           title="검색 결과가 없어요"
           description="다른 검색어나 검색 타입으로 시도해 보세요"
@@ -117,7 +121,14 @@ export function HomePage({ query, setQuery, type, setType, brand, setBrand }: Se
         <>
           <h2 className="home__heading">
             검색 결과 <span className="home__count">{total.toLocaleString()}</span>
-            {matched > 0 && (
+            {/*
+              0일 때도 보여준다. 감추면 '겹치는 곡이 없다'와 '아직 안 세었다'가
+              구분되지 않는다 — 브랜드 하나에만 있는 검색어(`미쿠`는 태진 0건)에서
+              숫자가 통째로 사라져 보였다.
+              브랜드 탭을 고르면 감춘다. 그때는 한쪽만 남겨 세는 것이라
+              '양쪽 다'가 항상 0이 된다.
+            */}
+            {brand === 'all' && (
               <span className="home__matched">양쪽 다 있는 곡 {matched}</span>
             )}
           </h2>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { PRIVACY_URL, TERMS_URL } from '../constants/legal'
 import { AuthRequestError } from '../utils/auth'
 import './AuthForm.css'
 
@@ -21,6 +22,9 @@ export function AuthForm({ mode, onSubmit }: Props) {
   const [id, setId] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  // 약관과 개인정보 수집·이용은 성격이 달라 따로 받는다.
+  // 하나로 묶으면 무엇에 동의했는지 구분되지 않는다.
+  const [agreed, setAgreed] = useState({ terms: false, privacy: false })
   // 어느 입력이 문제인지에 따라 그 아래에 메시지를 붙인다
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
@@ -42,6 +46,10 @@ export function AuthForm({ mode, onSubmit }: Props) {
 
     if (isSignup && password !== confirm) {
       found.confirm = '비밀번호가 서로 달라요.'
+    }
+
+    if (isSignup && !(agreed.terms && agreed.privacy)) {
+      found.agree = '필수 항목에 동의해야 가입할 수 있어요.'
     }
 
     return found
@@ -121,6 +129,50 @@ export function AuthForm({ mode, onSubmit }: Props) {
           />
           {errors.confirm && <span className="auth__hint">{errors.confirm}</span>}
         </label>
+      )}
+
+      {isSignup && (
+        <fieldset className="auth__agree">
+          <legend className="auth__agree-title">약관 동의</legend>
+
+          <label className="auth__check">
+            <input
+              type="checkbox"
+              checked={agreed.terms}
+              onChange={(e) => setAgreed((prev) => ({ ...prev, terms: e.target.checked }))}
+            />
+            <span>
+              <a href={TERMS_URL} target="_blank" rel="noopener noreferrer">
+                이용약관
+              </a>
+              에 동의합니다 <b>(필수)</b>
+            </span>
+          </label>
+
+          <label className="auth__check">
+            <input
+              type="checkbox"
+              checked={agreed.privacy}
+              onChange={(e) => setAgreed((prev) => ({ ...prev, privacy: e.target.checked }))}
+            />
+            <span>
+              <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer">
+                개인정보 수집·이용
+              </a>
+              에 동의합니다 <b>(필수)</b>
+            </span>
+          </label>
+
+          <p className="auth__agree-note">
+            아이디와 비밀번호만 저장하며, 탈퇴하면 즉시 지워져요.
+          </p>
+
+          {errors.agree && (
+            <span className="auth__hint" role="alert">
+              {errors.agree}
+            </span>
+          )}
+        </fieldset>
       )}
 
       {errors.form && (

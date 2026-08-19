@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { Modal } from '../components/Modal'
+import { PRIVACY_URL, TERMS_URL } from '../constants/legal'
 import { Segmented } from '../components/Segmented'
 import { useAuth } from '../hooks/useAuth'
 import { useBookmarks } from '../hooks/useBookmarks'
@@ -17,16 +18,37 @@ const SORT_OPTIONS = [
 const APP_VERSION = '0.1.0'
 const CONTACT = 'dlwlgushi@gmail.com'
 
+/** 안내가 붙는 자리. 누른 버튼 바로 아래에만 뜬다. */
+type NoticeSpot = 'export' | 'clear' | 'withdraw'
+
+function Notice({
+  notice,
+  where,
+}: {
+  notice: { where: NoticeSpot; text: string } | null
+  where: NoticeSpot
+}) {
+  if (notice?.where !== where) return null
+
+  return (
+    <p className="settings__notice" role="status">
+      {notice.text}
+    </p>
+  )
+}
+
 export function SettingsPage() {
   const { settings, update } = useSettings()
   const { session, logout } = useAuth()
   const { items, reload } = useBookmarks(Boolean(session))
   const [confirming, setConfirming] = useState<'clear' | 'withdraw' | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  // 어느 버튼의 결과인지까지 들고 있는다. 안내가 화면 아래에 따로 뜨면
+  // 무엇에 대한 말인지 알기 어렵고, 누른 곳에서 시선이 멀어진다.
+  const [notice, setNotice] = useState<{ where: NoticeSpot; text: string } | null>(null)
 
   async function exportFavorites() {
     if (items.length === 0) {
-      setNotice('내보낼 즐겨찾기가 없어요.')
+      setNotice({ where: 'export', text: '내보낼 즐겨찾기가 없어요.' })
       return
     }
 
@@ -41,10 +63,10 @@ export function SettingsPage() {
 
     try {
       await navigator.clipboard.writeText(text)
-      setNotice(`${items.length}곡을 복사했어요.`)
+      setNotice({ where: 'export', text: `${items.length}곡을 복사했어요.` })
     } catch {
       // 클립보드 권한이 없거나 https가 아닐 때
-      setNotice('복사하지 못했어요.')
+      setNotice({ where: 'export', text: '복사하지 못했어요.' })
     }
   }
 
@@ -53,14 +75,14 @@ export function SettingsPage() {
     else localStorage.removeItem('kada:bookmarks:v1')
     await reload()
     setConfirming(null)
-    setNotice('즐겨찾기를 모두 지웠어요.')
+    setNotice({ where: 'clear', text: '즐겨찾기를 모두 지웠어요.' })
   }
 
   async function withdraw() {
     await authApi.remove().catch(() => undefined)
     await logout()
     setConfirming(null)
-    setNotice('탈퇴가 완료됐어요.')
+    setNotice({ where: 'withdraw', text: '탈퇴가 완료됐어요.' })
   }
 
   return (
@@ -107,6 +129,7 @@ export function SettingsPage() {
           즐겨찾기 내보내기
           <span className="settings__desc">번호까지 텍스트로 복사해요.</span>
         </button>
+        <Notice notice={notice} where="export" />
 
         <button
           type="button"
@@ -118,6 +141,7 @@ export function SettingsPage() {
             {session ? '계정에 담아둔 곡을 모두 지워요.' : '이 기기에 담아둔 곡을 모두 지워요.'}
           </span>
         </button>
+        <Notice notice={notice} where="clear" />
       </section>
 
       <section className="settings__group">
@@ -140,11 +164,33 @@ export function SettingsPage() {
           <span>{CONTACT}</span>
         </a>
 
+        {/*
+          로그인 여부와 관계없이 보여야 하고, 첫 화면에서 3단계 이내여야 한다
+          (개인정보 처리방침 작성지침 Part Ⅱ-4). 설정은 홈에서 1단계다.
+        */}
+        <a
+          className="settings__info settings__info--link"
+          href={TERMS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span>이용약관</span>
+          <span aria-hidden="true">보기</span>
+        </a>
+        <a
+          className="settings__info settings__info--link"
+          href={PRIVACY_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span>개인정보 처리방침</span>
+          <span aria-hidden="true">보기</span>
+        </a>
+
         <p className="settings__legal">
           이 페이지에는 ㈜여기어때컴퍼니가 제공한 여기어때 잘난체가 적용되어 있습니다.
           곡 정보는 태진미디어·금영엔터테인먼트 및 manana API에서 가져옵니다.
         </p>
-        {/* TODO: 출시 전 개인정보처리방침·이용약관 링크를 여기에 건다 */}
       </section>
 
       {session && (
@@ -156,13 +202,8 @@ export function SettingsPage() {
           >
             회원탈퇴
           </button>
+          <Notice notice={notice} where="withdraw" />
         </section>
-      )}
-
-      {notice && (
-        <p className="settings__notice" role="status">
-          {notice}
-        </p>
       )}
 
       {confirming && (

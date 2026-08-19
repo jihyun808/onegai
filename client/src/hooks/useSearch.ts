@@ -54,6 +54,11 @@ export function useSearch(
   const [loadingMore, setLoadingMore] = useState(false)
   const [completing, setCompleting] = useState(false)
   const [complete, setComplete] = useState(true)
+  // 지금 화면에 있는 결과를 공식까지 뒤져서 받았는지.
+  // 다음 페이지도 **같은 조건으로** 물어야 한다 — 1차(DB만)와 2차(공식 포함)는
+  // 서버에서 캐시가 분리돼 있어서, 2차 결과를 보고 있다가 1차로 다음 장을
+  // 달라고 하면 DB에 없는 검색어는 0건이 돌아온다.
+  const [usedFull, setUsedFull] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // 이전 요청을 취소해서, 늦게 도착한 응답이 최신 결과를 덮어쓰지 않게 한다
@@ -75,6 +80,7 @@ export function useSearch(
       setLoading(false)
       setCompleting(false)
       setComplete(true)
+      setUsedFull(false)
       return
     }
 
@@ -102,6 +108,7 @@ export function useSearch(
         setLoading(false)
 
         setComplete(response.complete)
+        setUsedFull(false)
 
         // 1차는 자체 DB만 본 결과다. 나머지는 공식에서 뒤져 뒤에 덧붙인다.
         if (response.complete) return
@@ -125,6 +132,7 @@ export function useSearch(
             setHasMore(full.has_more)
             setCompleting(false)
             setComplete(true)
+            setUsedFull(true)
           })
           .catch(() => {
             // 공식이 실패해도 1차 결과는 그대로 둔다
@@ -177,6 +185,7 @@ export function useSearch(
         setHasMore(full.has_more)
         setCompleting(false)
         setComplete(true)
+        setUsedFull(true)
       })
       .catch(() => {
         if (!controller.signal.aborted) setCompleting(false)
@@ -198,6 +207,8 @@ export function useSearch(
       brand,
       limit: PAGE_SIZE,
       offset: loaded,
+      // 1차 결과를 보고 있으면 1차로, 2차 결과면 2차로 이어 받는다
+      full: usedFull,
       sort,
       korean,
       signal: controller.signal,
@@ -217,7 +228,7 @@ export function useSearch(
         setLoadingMore(false)
         loadingMoreRef.current = false
       })
-  }, [trimmed, type, sort, korean, loaded, hasMore, loading])
+  }, [trimmed, type, sort, korean, loaded, hasMore, loading, usedFull])
 
   return {
     groups,

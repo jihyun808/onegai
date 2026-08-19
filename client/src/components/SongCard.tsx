@@ -1,4 +1,10 @@
+import { useState } from 'react'
+
+import { usePreview } from '../hooks/usePreview'
 import type { Brand, SongGroup } from '../types/karaoke'
+import { PauseIcon, PlayIcon } from './icons'
+import { LyricsModal } from './LyricsModal'
+import { Spinner } from './Spinner'
 import './SongCard.css'
 
 /** 뱃지 순서를 고정한다 (태진 먼저). 데이터 순서에 흔들리지 않게. */
@@ -16,11 +22,54 @@ interface Props {
 }
 
 export function SongCard({ group, bookmarked, onToggleBookmark }: Props) {
+  // 팝업을 열 때 비로소 가사를 불러온다. 카드 50장이면 요청도 50번이라
+  // 미리 받아둘 수는 없다.
+  const [showLyrics, setShowLyrics] = useState(false)
+  const preview = usePreview(group.match_key, group.title, group.singer)
+
   return (
     <li className="song sketch">
+      {/*
+        누르기 전에는 빈 ▶ 자리다. 앨범아트도 이때 처음 받아온다 —
+        카드마다 미리 부르면 목록 한 장에 iTunes 요청이 50번 나간다.
+      */}
+      <button
+        className={`song__play ${preview.playing ? 'is-on' : ''}`}
+        type="button"
+        onClick={preview.toggle}
+        disabled={preview.missing}
+        aria-label={
+          preview.missing
+            ? `${group.title} 미리듣기 없음`
+            : preview.failed
+              ? `${group.title} 미리듣기 다시 시도`
+              : `${group.title} 미리듣기 ${preview.playing ? '정지' : '재생'}`
+        }
+      >
+        {preview.artwork && (
+          <img className="song__art" src={preview.artwork} alt="" loading="lazy" />
+        )}
+        <span className="song__play-icon">
+          {preview.loading ? (
+            <Spinner />
+          ) : preview.playing ? (
+            <PauseIcon size={18} />
+          ) : (
+            <PlayIcon size={18} />
+          )}
+        </span>
+      </button>
+
       <div className="song__body">
         <p className="song__title">{group.title}</p>
         <p className="song__singer">{group.singer || '가수 정보 없음'}</p>
+        <button
+          className="song__lyrics"
+          type="button"
+          onClick={() => setShowLyrics(true)}
+        >
+          가사보기
+        </button>
       </div>
 
       {/* 번호가 이 화면의 주인공이라 우측에 크게 나란히 둔다 */}
@@ -62,6 +111,14 @@ export function SongCard({ group, bookmarked, onToggleBookmark }: Props) {
           />
         </svg>
       </button>
+
+      {showLyrics && (
+        <LyricsModal
+          title={group.title}
+          singer={group.singer}
+          onClose={() => setShowLyrics(false)}
+        />
+      )}
     </li>
   )
 }

@@ -131,8 +131,9 @@
   text-underline-offset: 3px;
 }
 
+/* 누른 버튼 바로 아래에 붙는다. 버튼과 한 덩어리로 보이도록 여백을 좁힌다 */
 .settings__notice {
-  margin: 0 2px;
+  margin: 6px 2px 2px;
   color: var(--ink-soft);
   font-size: 12.5px;
 }
