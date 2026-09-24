@@ -1,7 +1,3 @@
-/**
- * 웹(client/src/styles/global.css)의 변수를 그대로 옮겼다.
- * 아이보리 배경 + 손그림 느낌.
- */
 export const colors = {
   ivory: '#f7f3e8',
   ivoryDeep: '#efe8d6',
@@ -19,7 +15,6 @@ export const colors = {
   accent: '#e0863a',
 }
 
-/** App.tsx에서 불러오는 글꼴 이름. 본문은 Noto Sans KR, 제목·숫자는 손글씨. */
 export const fonts = {
   body: 'NotoSansKR_400Regular',
   bodySemi: 'NotoSansKR_600SemiBold',

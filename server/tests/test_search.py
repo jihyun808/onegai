@@ -1,5 +1,3 @@
-"""검색 서비스 및 엔드포인트."""
-
 import pytest
 
 from app.services import search_service
@@ -9,7 +7,6 @@ from tests.conftest import entry
 
 @pytest.fixture
 def two_brands(fake_manana):
-    """TJ와 금영이 같은 곡을 다르게 등록한 상황."""
     fake_manana.by_brand["tj"] = [
         entry("tj", "68230", "花に亡霊(映画'泣きたい私は猫をかぶる' OST)", "ヨルシカ", "2026-02-01"),
         entry("tj", "68212", "雨とカプチーノ", "ヨルシカ", "2026-01-05"),
@@ -34,7 +31,6 @@ class TestValidation:
         assert res.status_code == 400
 
     def test_unsupported_brand(self, client):
-        """joysound / dam 은 기획상 노출하지 않는다."""
         res = client.get("/api/search?q=Ado&brand=joysound")
         assert res.status_code == 400
 
@@ -55,7 +51,6 @@ class TestValidation:
 
 class TestBrandFanout:
     def test_all_calls_each_brand_separately(self, app, two_brands):
-        """무브랜드 manana 호출은 잘린 결과를 주므로 쓰면 안 된다."""
         with app.app_context():
             search_service.search("ヨルシカ", "singer", "all")
 
@@ -63,7 +58,6 @@ class TestBrandFanout:
             ("singer", "ヨルシカ", "tj"),
             ("singer", "ヨルシカ", "kumyoung"),
         ]
-        # brand=None 으로 부른 적이 없어야 한다
         assert all(brand is not None for _, _, brand in two_brands.calls)
 
     def test_all_is_union_of_brands(self, app, two_brands):
@@ -105,7 +99,6 @@ class TestGrouping:
         assert [g["brands"] for g in solo] == [{"tj": ["68212"]}]
 
     def test_group_keeps_every_number(self, app, fake_manana):
-        """괄호 제거로 버전 표기가 병합돼도 번호는 잃지 않는다."""
         fake_manana.by_brand["kumyoung"] = [
             entry("kumyoung", "88397", "花に亡霊(Acoustic Ver.)", "ヨルシカ"),
             entry("kumyoung", "46438", "花に亡霊", "ヨルシカ"),
@@ -117,7 +110,6 @@ class TestGrouping:
         assert sorted(result["groups"][0]["brands"]["kumyoung"]) == ["46438", "88397"]
 
     def test_results_keep_original_titles(self, app, two_brands):
-        """원본 필드는 정규화로 변형되지 않는다."""
         with app.app_context():
             result = search_service.search("ヨルシカ", "singer", "all")
 
@@ -155,7 +147,6 @@ class TestCaching:
         assert len(fake_manana.calls) == 1
 
     def test_distinct_queries_do_not_share_cache(self, app, fake_manana, fake_redis):
-        """'ONE PIECE' 와 'ONEPIECE' 는 manana가 다르게 취급한다."""
         fake_manana.by_brand["tj"] = [entry("tj", "1", "곡", "가수")]
         with app.app_context():
             search_service.search("ONE PIECE", "song", "tj")
@@ -179,7 +170,6 @@ class TestCaching:
         assert ttl == app.config["CACHE_TTL"]
 
     def test_works_without_redis(self, app, two_brands):
-        """Redis가 없어도 검색은 동작해야 한다 (no_real_redis 픽스처 적용 중)."""
         with app.app_context():
             result = search_service.search("ヨルシカ", "singer", "all")
 
@@ -198,7 +188,6 @@ class TestResponseShape:
         } | PAGING_KEYS
 
     def test_non_ascii_is_not_escaped(self, client, two_brands):
-        """일본어/한글이 \\uXXXX 로 부풀지 않아야 한다."""
         res = client.get("/api/search?q=ヨルシカ&type=singer&brand=all")
         assert "ヨルシカ" in res.get_data(as_text=True)
         assert "\\u30e8" not in res.get_data(as_text=True)
@@ -206,23 +195,20 @@ class TestResponseShape:
     def test_health(self, client):
         payload = client.get("/api/health").get_json()
         assert payload["status"] == "ok"
-        assert payload["redis"] is False  # 테스트에서는 캐시 비활성
+        assert payload["redis"] is False
 
 
 class TestSongCount:
-    """화면은 같은 곡을 한 장으로 묶는다. 숫자도 그에 맞아야 한다."""
 
     def test_songs_counts_cards_not_numbers(self, app, two_brands):
         with app.app_context():
             result = search_service.search("ヨルシカ", "singer", "all")
 
-        # 花に亡霊은 양쪽에 있어 번호가 2개, 카드는 1장
         assert result["total"] == 3, "번호 수"
         assert result["songs"] == 2, "곡 수 = 카드 수"
         assert result["songs"] == len(result["groups"])
 
     def test_songs_covers_all_pages(self, app, fake_manana):
-        """페이지에 잘려도 전체 곡 수를 알려줘야 한다."""
         fake_manana.by_brand["tj"] = [
             entry("tj", str(i), f"曲{i}", "ヨルシカ", "2026-01-01") for i in range(80)
         ]
@@ -236,7 +222,6 @@ class TestSongCount:
 class TestSortOption:
     @pytest.fixture
     def mixed(self, fake_manana):
-        # 번호와 발매일 순서가 어긋나게 둔다 — 정렬이 실제로 바뀌는지 보려고
         fake_manana.by_brand["tj"] = [
             entry("tj", "10", "曲A", "ヨルシカ", "2020-01-01"),
             entry("tj", "90", "曲B", "ヨルシカ", "2010-01-01"),
@@ -258,7 +243,6 @@ class TestSortOption:
         assert self._numbers(result) == ["90", "50", "10"]
 
     def test_number_order_is_numeric_not_lexical(self, app, fake_manana):
-        """문자열로 정렬하면 9가 10보다 뒤로 간다."""
         fake_manana.by_brand["tj"] = [
             entry("tj", n, f"曲{n}", "ヨルシカ", "2026-01-01") for n in ["9", "10", "100"]
         ]
@@ -289,7 +273,6 @@ class TestKoreanToggle:
         assert len(result["groups"]) == 2
 
     def test_uses_separate_cache(self, app, mixed, fake_redis):
-        """켜고 끈 결과가 서로 섞이면 안 된다."""
         with app.app_context():
             search_service.search("미쿠", "song", "tj", full=True)
             with_korean = search_service.search(
@@ -299,10 +282,7 @@ class TestKoreanToggle:
 
 
 class TestSingerNoise:
-    """노래방 DB는 가수명을 부분 문자열로 찾는다 (DECISIONS 1번).
 
-    실제 태진 응답 기준으로, 'Ado' 70건 중 36건이 다른 가수였다 (2026-08-19).
-    """
 
     @pytest.fixture
     def ado(self, fake_manana):
@@ -322,21 +302,18 @@ class TestSingerNoise:
         assert {g["singer"] for g in result["groups"]} == {"Ado", "Ado,初音ミク"}
 
     def test_keeps_collaborations(self, app, ado):
-        """'Ado,初音ミク'는 통째로 비교하면 사라진다. 쪼개서 비교해야 남는다."""
         with app.app_context():
             result = search_service.search("Ado", "singer", "tj", full=True,
                                            include_korean=True)
         assert "桜日和とタイムマシン" in [g["title"] for g in result["groups"]]
 
     def test_song_search_is_untouched(self, app, fake_manana):
-        """곡명 검색은 부분 일치가 오히려 필요하다."""
         fake_manana.by_brand["tj"] = [entry("tj", "1", "唱", "ADOY")]
         with app.app_context():
             result = search_service.search("唱", "song", "tj", full=True)
         assert len(result["groups"]) == 1
 
     def test_falls_back_when_nothing_matches_exactly(self, app, fake_manana):
-        """'미쿠'로 '初音ミク'를 찾는 검색. 거르면 화면이 통째로 빈다."""
         fake_manana.by_brand["tj"] = [
             entry("tj", "1", "初音ミクの消失", "初音ミク"),
             entry("tj", "2", "ロミオとシンデレラ", "初音ミク"),

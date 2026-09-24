@@ -1,20 +1,9 @@
-# Railway 크론 서비스 설정 — 매일 크롤링(crawl-daily).
-#
-# 같은 레포로 서비스를 하나 더 만들고 Settings를 이렇게 맞춘다:
-#   Root Directory   /server
-#   Config file path /server/railway.cron.toml
-# 환경변수는 웹 서비스와 같게 둔다 (MYSQL_*, REDIS_*, FLASK_ENV, SECRET_KEY).
-#
-# 크론 서비스는 명령이 끝나면 내려간다. 웹 포트가 없으니 헬스체크도 없다.
-
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
-# 서버 코드가 바뀐 푸시만 재배포한다. 프론트나 문서만 고친 커밋은 건너뛴다.
 watchPatterns = ["/server/**"]
 
 [deploy]
 startCommand = "flask --app run crawl-daily"
-# UTC 기준이다. 19:00 UTC = 한국 04:00, 사용자가 적은 시간.
 cronSchedule = "0 19 * * *"
 restartPolicyType = "NEVER"

@@ -6,15 +6,12 @@
   z-index: 20;
   width: 100%;
   max-width: 480px;
-  /* 아이폰 홈 인디케이터에 가리지 않게 */
   padding-bottom: env(safe-area-inset-bottom, 0);
-  /* 바 위로 튀어나온 홈 버튼도 눌려야 하므로 배경만 깔고 넘침을 허용한다 */
   pointer-events: none;
 }
 
 .nav__bar {
   position: relative;
-  /* 노치 뒤로 페이지가 비쳐 보이지 않게 바 뒤를 배경색으로 채운다 */
   isolation: isolate;
 }
 
@@ -22,7 +19,6 @@
   display: block;
   width: 100%;
   height: auto;
-  /* 왜곡 필터가 선을 밀어내므로 잘리지 않도록 여유를 준다 */
   overflow: visible;
   pointer-events: none;
 }
@@ -35,7 +31,6 @@
 
 .nav__items {
   position: absolute;
-  /* viewBox 기준 바의 평평한 윗변이 y=46/115 이므로 그 아래부터 배치한다 */
   inset: 40% 0 0;
   display: flex;
   align-items: center;
@@ -48,7 +43,6 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  /* 터치 목표 확보 */
   padding: 4px 0;
   color: var(--ink-faint);
   transition: color 0.15s ease;
@@ -58,7 +52,6 @@
   color: var(--ink);
 }
 
-/* 가운데 노치 폭만큼 비운다 — 좌우 항목이 홈 버튼과 겹치지 않게 */
 .nav__gap {
   flex: 0 0 30%;
 }
@@ -71,10 +64,6 @@
 .nav__home {
   position: absolute;
   left: 50%;
-  /*
-   * 버튼 중심을 viewBox y=66/115 에 둔다.
-   * 바 윗변(y=46)보다 조금만 올라와 좌우 아이콘과 높이 차가 크지 않다.
-   */
   top: 57.4%;
   transform: translate(-50%, -50%);
   display: grid;
@@ -97,7 +86,6 @@
   color: var(--paper);
 }
 
-/* 화면에는 안 보이지만 스크린리더는 읽는 텍스트 */
 .sr-only {
   position: absolute;
   width: 1px;

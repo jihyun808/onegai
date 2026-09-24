@@ -14,7 +14,6 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('home')
   const { settings } = useSettings()
 
-  // 탭을 옮겨도 검색 상태가 유지되도록 여기서 들고 있는다
   const [query, setQuery] = useState('')
   const [type, setType] = useState<SearchType>(settings.searchType)
   const [brand, setBrand] = useState<BrandFilter>(settings.brand)
@@ -27,7 +26,6 @@ export default function App() {
         <Logo />
       </header>
 
-      {/* 탭을 바꿔도 검색어와 북마크가 유지되도록 페이지만 갈아끼운다 */}
       <main className="app__main">
         {tab === 'home' && (
           <HomePage

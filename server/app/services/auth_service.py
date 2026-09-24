@@ -1,17 +1,3 @@
-"""회원가입 · 로그인.
-
-보안에서 신경 쓴 것:
-
-1. **bcrypt 해싱** — 평문·MD5·SHA는 쓰지 않는다. DB가 통째로 새도
-   비밀번호 자체는 지켜진다. 사람들이 비밀번호를 돌려쓰기 때문에,
-   유출 피해는 우리 서비스가 아니라 사용자의 다른 계정에서 발생한다.
-2. **로그인 시도 제한** — 계정당 5회 실패하면 잠근다. 없으면 무차별 대입에
-   그대로 뚫린다. 카운터는 Redis에 둔다.
-3. **httpOnly 쿠키 세션** — 토큰을 자바스크립트가 읽을 수 없게 한다
-   (라우트에서 Flask 세션 사용).
-4. 비밀번호 복잡도는 강요하지 않는다. 길이만 본다 — 요즘 권고에 맞다.
-"""
-
 import logging
 import re
 
@@ -26,18 +12,15 @@ logger = logging.getLogger(__name__)
 USERNAME_MIN = 5
 USERNAME_MAX = 20
 PASSWORD_MIN = 8
-# 상한을 두는 이유는 정책이 아니라 bcrypt가 72바이트까지만 보기 때문이다.
 PASSWORD_MAX = 72
 
 _USERNAME = re.compile(r"^[A-Za-z0-9_]+$")
 
-# 로그인 실패 카운터
 MAX_ATTEMPTS = 5
 LOCK_SECONDS = 15 * 60
 
 
 class AuthError(Exception):
-    """가입·로그인 실패. field에 어느 입력이 문제인지 담는다."""
 
     def __init__(self, message, field=None):
         super().__init__(message)
@@ -69,8 +52,6 @@ def _validate_password(password):
 
 
 def hash_password(password):
-    # 라운드가 높을수록 대입 공격이 비싸지지만 로그인도 느려진다.
-    # 12는 일반적인 권장값이다. 테스트에서는 낮춰 suite를 빠르게 유지한다.
     rounds = current_app.config["BCRYPT_ROUNDS"]
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds)).decode()
 
@@ -79,7 +60,6 @@ def verify_password(password, hashed):
     try:
         return bcrypt.checkpw(password.encode("utf-8"), hashed.encode())
     except ValueError:
-        # 해시 형식이 깨진 경우. 로그인 실패로 처리한다.
         return False
 
 
@@ -95,14 +75,12 @@ def register(username, password):
 
     created = user.create(username, hash_password(password))
     if created is None:
-        # 확인과 INSERT 사이에 누가 먼저 가져간 경우
         raise AuthError("중복된 아이디예요.", "username")
 
     return created
 
 
 def attempts_left(username):
-    """남은 로그인 시도 횟수. Redis가 없으면 제한하지 않는다."""
     used = cache.get_json(_attempt_key(username)) or 0
     return max(0, MAX_ATTEMPTS - used)
 
@@ -128,8 +106,6 @@ def login(username, password):
     if found is False:
         raise AuthError("지금은 로그인할 수 없어요. 잠시 후 다시 시도해 주세요.")
 
-    # 없는 아이디와 틀린 비밀번호를 같은 메시지로 답한다.
-    # 구분해서 알려주면 어떤 아이디가 존재하는지 긁어갈 수 있다.
     if found is None or not verify_password(password, found["password_hash"]):
         if found is not None:
             used = _record_failure(username)

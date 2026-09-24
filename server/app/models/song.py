@@ -1,9 +1,3 @@
-"""songs 테이블 조회/적재.
-
-검색 결과는 manana와 같은 스키마로 돌려준다. 그래야 상위 계층이
-DB에서 왔는지 외부에서 왔는지 신경 쓰지 않아도 된다.
-"""
-
 import logging
 
 from app.utils import db
@@ -11,7 +5,6 @@ from app.utils.normalize import make_match_key, normalize_text
 
 logger = logging.getLogger(__name__)
 
-# 한 번에 밀어 넣는 행 수
 CHUNK = 500
 
 _UPSERT = """
@@ -57,7 +50,6 @@ def _to_row(entry, source):
 
 
 def upsert(entries, source):
-    """곡들을 저장한다. 이미 있으면 갱신한다. 반영된 행 수를 돌려준다."""
     rows = [_to_row(e, source) for e in entries if e.get("no")]
     total = 0
 
@@ -77,17 +69,12 @@ def _as_entry(row):
         "composer": row["composer"],
         "lyricist": row["lyricist"],
         "release": release.isoformat() if release else "",
-        # 번역 제목. 공식에서 온 결과에는 없으므로 빈 문자열이 기본이다.
         "title_ko": row.get("title_ko") or "",
     }
 
 
 def search(keyword, search_type, brands, limit=500):
-    """DB에서 검색한다. DB를 못 쓰면 None (빈 결과와 구분해야 한다).
 
-    정규화한 검색어로 부분 일치를 본다. 그래서 공백·괄호·대소문자·
-    카타카나 차이를 넘어 찾는다 — 외부 사이트가 못 하는 것이다.
-    """
     if not brands:
         return []
 
@@ -101,8 +88,6 @@ def search(keyword, search_type, brands, limit=500):
         where = "singer_norm LIKE %s"
         params = (*brands, f"%{needle}%", limit)
     else:
-        # 곡명은 원어와 번역 제목을 함께 본다.
-        # `만찬가`로 `晩餐歌`를 찾는 길이다 (11번, db/005_title_ko.sql).
         where = "(title_norm LIKE %s OR title_ko_norm LIKE %s)"
         params = (*brands, f"%{needle}%", f"%{needle}%", limit)
 
@@ -124,7 +109,6 @@ def search(keyword, search_type, brands, limit=500):
 
 
 def count(brand=None):
-    """적재된 곡 수. DB를 못 쓰면 None."""
     if brand:
         rows = db.query("SELECT COUNT(*) AS n FROM songs WHERE brand = %s", (brand,))
     else:
@@ -158,16 +142,12 @@ _SET_TITLE_KO = """
 
 
 def untranslated_titles(limit=200):
-    """아직 번역이 없는 제목. 같은 제목은 한 번만 옮기면 된다.
 
-    가나·한자가 없는 제목(로마자·숫자)은 번역할 것이 없어 건너뛴다.
-    """
     rows = db.query(_UNTRANSLATED, (limit,))
     return [r["title"] for r in rows] if rows else []
 
 
 def save_translations(pairs):
-    """[(원어 제목, 한국어 제목)]을 반영한다. 반영된 행 수."""
     rows = [
         (ko[:255], normalize_text(ko)[:255], title)
         for title, ko in pairs
@@ -177,7 +157,6 @@ def save_translations(pairs):
 
 
 def translation_progress():
-    """번역 진행 상황 (번역됨, 남음)."""
     rows = db.query(
         """
         SELECT

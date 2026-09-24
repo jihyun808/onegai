@@ -26,7 +26,6 @@
   line-height: 1.5;
 }
 
-/* 손그림 UI에 맞춘 동그란 번호 */
 .tips__no {
   flex: none;
   width: 20px;
@@ -39,7 +38,6 @@
   text-align: center;
 }
 
-/* 예시는 한 줄 아래로 내려 규칙과 구분한다 */
 .tips__eg {
   display: block;
   margin-top: 2px;

@@ -1,22 +1,7 @@
 import type { SongGroup } from '../types/karaoke'
 
-/**
- * 태진 J-POP 인기곡 TOP 50 (2026-09-24 기준).
- *
- * **자동 수집이 아니라 손으로 넣은 스냅샷이다.** 인기 순위를 주는 곳이 없다 —
- * manana 인기곡 API는 100곡 중 일본곡이 8곡뿐이고, 태진 공식 차트
- * (`/chart/hot100`)에는 국가 필터가 아예 없다.
- *
- * 금영 번호는 우리 DB의 match_key로 맞춰 넣었다 (50곡 중 44곡).
- * 못 찾은 곡은 null이고, 카드에 태진 번호만 나온다.
- *
- * 갱신하려면 이 배열만 갈면 된다. 서버도 외부 호출도 관여하지 않는다.
- */
-
-/** 인기곡 목록 아래에 붙이는 출처. 기준일을 바꾸면 여기도 같이 바꾼다. */
 export const POPULAR_SOURCE = '출처: TJ미디어 J-POP 인기곡 (2026-09-24 기준)'
 
-/** [순위, 태진번호, 금영번호, 제목, 가수] */
 const ROWS: [number, string, string | null, string, string][] = [
   [1, '52788', '57828', '晩餐歌', 'tuki.'],
   [2, '68058', '44438', 'Pretender', 'Official髭男dism'],
@@ -73,7 +58,6 @@ const ROWS: [number, string, string | null, string, string][] = [
 export const POPULAR: SongGroup[] = ROWS.map(([rank, tj, ky, title, singer]) => ({
   title,
   singer,
-  // 검색 결과와 섞이지 않게 접두어를 붙인다. 즐겨찾기 키로도 쓰인다.
   match_key: `popular:${rank}:${tj}`,
   brands: ky ? { tj: [tj], kumyoung: [ky] } : { tj: [tj] },
   both: Boolean(ky),

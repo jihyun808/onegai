@@ -11,11 +11,11 @@
     },
     "preview": {
       "distribution": "internal",
-      "env": { "EXPO_PUBLIC_API_URL": "https://REPLACE-ME.up.railway.app", "EXPO_PUBLIC_LEGAL_BASE_URL": "https://jihyun808.github.io/karaokedayo" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://onegai-server-production.up.railway.app", "EXPO_PUBLIC_LEGAL_BASE_URL": "https://jihyun808.github.io/onegai" }
     },
     "production": {
       "autoIncrement": true,
-      "env": { "EXPO_PUBLIC_API_URL": "https://REPLACE-ME.up.railway.app", "EXPO_PUBLIC_LEGAL_BASE_URL": "https://jihyun808.github.io/karaokedayo" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://onegai-server-production.up.railway.app", "EXPO_PUBLIC_LEGAL_BASE_URL": "https://jihyun808.github.io/onegai" }
     }
   },
   "submit": {

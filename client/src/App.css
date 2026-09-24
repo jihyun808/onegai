@@ -2,7 +2,6 @@
   max-width: 480px;
   min-height: 100dvh;
   margin: 0 auto;
-  /* 하단 네비에 콘텐츠가 가리지 않도록 */
   padding: 0 12px calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 20px);
   background: var(--ivory);
 }

@@ -1,10 +1,3 @@
-"""favorites 테이블.
-
-저장 단위는 **브랜드별 곡번호 하나**다 (`user_id, brand, song_no`).
-화면에서는 곡 단위로 묶어 보여주지만, 태진과 금영은 번호가 따로라
-한쪽만 담는 경우도 있어서 행을 나눠 둔다.
-"""
-
 import logging
 
 from app.utils import db
@@ -23,7 +16,6 @@ def _as_entry(row):
 
 
 def list_for(user_id):
-    """담아둔 곡들. DB를 못 쓰면 None."""
     rows = db.query(
         """
         SELECT brand, song_no, title, singer, created_at
@@ -38,7 +30,6 @@ def list_for(user_id):
 
 
 def add_many(user_id, entries):
-    """여러 곡을 담는다. 이미 있으면 무시한다. 반영된 행 수."""
     rows = [
         (
             user_id,
@@ -53,7 +44,6 @@ def add_many(user_id, entries):
     if not rows:
         return 0
 
-    # UNIQUE (user_id, brand, song_no) 덕분에 중복은 조용히 무시된다
     return db.execute_many(
         """
         INSERT IGNORE INTO favorites (user_id, brand, song_no, title, singer)
@@ -71,5 +61,4 @@ def remove(user_id, brand, song_no):
 
 
 def clear(user_id):
-    """담아둔 곡을 모두 지운다."""
     return db.execute_many("DELETE FROM favorites WHERE user_id = %s", [(user_id,)])

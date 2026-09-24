@@ -10,32 +10,22 @@ const PAGE_SIZE = 50
 
 interface UseSearchResult {
   groups: SongGroup[]
-  /** 전체 곡 수 = 끝까지 스크롤했을 때 보일 카드 수 */
   total: number
-  /** 지금까지 불러온 원본 항목 수 — 다음 페이지 offset으로도 쓴다 */
   loaded: number
   matched: number
   hasMore: boolean
   loading: boolean
   loadingMore: boolean
-  /** 공식 사이트까지 뒤지는 중 — 목록 아래에 스피너를 띄운다 */
   loadingMore2: boolean
-  /** 아직 공식을 안 뒤졌다 — '더 찾아보기'를 띄울 수 있다 */
   canSearchMore: boolean
-  /** 공식 사이트까지 마저 뒤진다 */
   searchMore: () => void
   error: string | null
-  /** 디바운스 대기 중인지 — 입력 직후 이전 결과를 그대로 두기 위해 쓴다 */
   pending: boolean
   loadMore: () => void
 }
 
 const EMPTY: SongGroup[] = []
 
-/**
- * 브랜드는 인자로 받지 않는다. 항상 '전체'로 받아 두고 화면에서 거른다.
- * 탭을 누를 때마다 서버를 다시 부르면 4초를 또 기다리게 된다.
- */
 export function useSearch(
   query: string,
   type: SearchType,
@@ -54,19 +44,12 @@ export function useSearch(
   const [loadingMore, setLoadingMore] = useState(false)
   const [completing, setCompleting] = useState(false)
   const [complete, setComplete] = useState(true)
-  // 지금 화면에 있는 결과를 공식까지 뒤져서 받았는지.
-  // 다음 페이지도 **같은 조건으로** 물어야 한다 — 1차(DB만)와 2차(공식 포함)는
-  // 서버에서 캐시가 분리돼 있어서, 2차 결과를 보고 있다가 1차로 다음 장을
-  // 달라고 하면 DB에 없는 검색어는 0건이 돌아온다.
   const [usedFull, setUsedFull] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // 이전 요청을 취소해서, 늦게 도착한 응답이 최신 결과를 덮어쓰지 않게 한다
   const controllerRef = useRef<AbortController | null>(null)
-  // 스크롤 이벤트가 연속으로 들어와도 같은 페이지를 두 번 부르지 않게 한다
   const loadingMoreRef = useRef(false)
 
-  // 첫 페이지 — 검색어/타입/브랜드가 바뀔 때마다 처음부터 다시 불러온다
   useEffect(() => {
     controllerRef.current?.abort()
     loadingMoreRef.current = false
@@ -110,7 +93,6 @@ export function useSearch(
         setComplete(response.complete)
         setUsedFull(false)
 
-        // 1차는 자체 DB만 본 결과다. 나머지는 공식에서 뒤져 뒤에 덧붙인다.
         if (response.complete) return
         setCompleting(true)
 
@@ -135,12 +117,10 @@ export function useSearch(
             setUsedFull(true)
           })
           .catch(() => {
-            // 공식이 실패해도 1차 결과는 그대로 둔다
             if (!controller.signal.aborted) setCompleting(false)
           })
       })
       .catch((err: unknown) => {
-        // 사용자가 계속 타이핑해서 취소된 것은 오류가 아니다
         if (controller.signal.aborted) return
         setError(err instanceof Error ? err.message : '검색에 실패했어요.')
         setGroups(EMPTY)
@@ -154,12 +134,6 @@ export function useSearch(
     return () => controller.abort()
   }, [trimmed, type, sort, korean])
 
-  /**
-   * 사용자가 직접 공식까지 뒤지게 한다.
-   *
-   * DB가 완전하지 않을 수 있어서(크롤링 시점 이후 신곡 등) 결과가 충분해 보여도
-   * 원하는 곡이 빠져 있을 수 있다. 그럴 때 눌러 확인한다.
-   */
   const searchMore = useCallback(() => {
     if (completing || !trimmed) return
 
@@ -207,14 +181,12 @@ export function useSearch(
       brand,
       limit: PAGE_SIZE,
       offset: loaded,
-      // 1차 결과를 보고 있으면 1차로, 2차 결과면 2차로 이어 받는다
       full: usedFull,
       sort,
       korean,
       signal: controller.signal,
     })
       .then((response) => {
-        // 같은 곡이 페이지에 걸쳐 나뉘어 올 수 있어 match_key로 합친다
         setGroups((prev) => mergeGroups(prev, response.groups))
         setTotal(response.songs)
         setLoaded((prev) => prev + response.returned)

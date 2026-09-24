@@ -5,16 +5,6 @@ import * as api from '../utils/favorites'
 import { flatten } from '../utils/favorites'
 import { readJson, removeKey, subscribe, writeJson } from '../utils/storage'
 
-/**
- * 즐겨찾기.
- *
- * 로그인 여부에 따라 저장 위치가 다르다.
- *   비로그인 — 기기(AsyncStorage). 로그인 없이도 쓸 수 있어야 한다.
- *   로그인   — 서버. 기기를 바꿔도 남는다.
- *
- * 가입하는 순간 로컬에 쌓인 것을 서버로 한 번 올리고 로컬을 비운다
- * (`migrateLocal`). 안 그러면 그동안 담은 것이 사라진 것처럼 보인다.
- */
 export const STORAGE_KEY = 'kada:bookmarks:v1'
 
 export interface Bookmark {
@@ -37,7 +27,6 @@ function toBookmark(group: SongGroup): Bookmark {
   }
 }
 
-/** 서버에서 온 그룹을 화면이 쓰는 형태로. */
 function fromGroup(group: SongGroup): Bookmark {
   return { ...toBookmark(group), saved_at: '' }
 }
@@ -84,7 +73,6 @@ export function useBookmarks(loggedIn: boolean) {
         return
       }
 
-      // 화면을 먼저 바꾸고 서버에 보낸다. 실패하면 되돌린다.
       const snapshot = items
       setItems(
         exists
@@ -111,17 +99,10 @@ export function useBookmarks(loggedIn: boolean) {
   return { items, toggle, has, reload }
 }
 
-/** 기기에 담아둔 즐겨찾기를 모두 지운다 (비로그인 상태의 전체 삭제). */
 export function clearLocal() {
   return removeKey(STORAGE_KEY)
 }
 
-/**
- * 가입 직후 로컬 즐겨찾기를 서버로 옮긴다.
- *
- * 서버에 이미 있는 곡은 조용히 무시되므로(UNIQUE 제약) 여러 번 불려도 안전하다.
- * 올리기에 성공해야만 로컬을 비운다 — 실패했는데 지우면 데이터가 사라진다.
- */
 export async function migrateLocal(): Promise<number> {
   const local = await readLocal()
   if (local.length === 0) return 0

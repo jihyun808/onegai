@@ -10,7 +10,6 @@ export type AuthMode = 'login' | 'signup'
 
 const ID_MIN = 5
 const ID_MAX = 20
-// 비밀번호는 최소 길이만 본다. 상한을 두면 긴 암호구절을 쓰는 사람이 막힌다.
 const PW_MIN = 8
 
 interface Props {
@@ -55,7 +54,6 @@ export function AuthForm({ mode, onSubmit }: Props) {
   const [id, setId] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
-  // 약관과 개인정보 수집·이용은 성격이 달라 따로 받는다.
   const [agreed, setAgreed] = useState({ terms: false, privacy: false })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
@@ -94,7 +92,6 @@ export function AuthForm({ mode, onSubmit }: Props) {
     try {
       await onSubmit(id, password)
     } catch (err) {
-      // 서버가 알려준 필드에 붙인다. 모르면 폼 전체 오류로 둔다.
       if (err instanceof AuthRequestError && err.field) {
         setErrors({ [err.field]: err.message })
       } else {

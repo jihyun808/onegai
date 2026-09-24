@@ -6,15 +6,12 @@ import './AuthForm.css'
 
 export type AuthMode = 'login' | 'signup'
 
-/** 서버 스키마(users.email)와 맞춘 제한. 지금은 화면에서만 검사한다. */
 const ID_MIN = 5
 const ID_MAX = 20
-// 비밀번호는 최소 길이만 본다. 상한을 두면 긴 암호구절을 쓰는 사람이 막힌다.
 const PW_MIN = 8
 
 interface Props {
   mode: AuthMode
-  /** 실제 요청. 아직 서버 API가 없어 화면에서만 호출한다. */
   onSubmit: (id: string, password: string) => Promise<void>
 }
 
@@ -22,10 +19,7 @@ export function AuthForm({ mode, onSubmit }: Props) {
   const [id, setId] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
-  // 약관과 개인정보 수집·이용은 성격이 달라 따로 받는다.
-  // 하나로 묶으면 무엇에 동의했는지 구분되지 않는다.
   const [agreed, setAgreed] = useState({ terms: false, privacy: false })
-  // 어느 입력이 문제인지에 따라 그 아래에 메시지를 붙인다
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
 
@@ -69,7 +63,6 @@ export function AuthForm({ mode, onSubmit }: Props) {
     try {
       await onSubmit(id, password)
     } catch (err) {
-      // 서버가 알려준 필드에 붙인다. 모르면 폼 전체 오류로 둔다.
       if (err instanceof AuthRequestError && err.field) {
         setErrors({ [err.field]: err.message })
       } else {

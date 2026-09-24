@@ -27,7 +27,6 @@ const SORT_OPTIONS = [
 
 const APP_VERSION = Constants.expoConfig?.version ?? "-";
 
-/** 안내가 붙는 자리. 누른 버튼 바로 아래에만 뜬다. */
 type NoticeSpot = "export" | "clear" | "withdraw";
 
 export function SettingsScreen() {
@@ -37,7 +36,6 @@ export function SettingsScreen() {
   const [confirming, setConfirming] = useState<"clear" | "withdraw" | null>(
     null,
   );
-  // 어느 버튼의 결과인지까지 들고 있는다. 누른 곳에서 시선이 멀어지지 않게.
   const [notice, setNotice] = useState<{
     where: NoticeSpot;
     text: string;
@@ -165,7 +163,6 @@ export function SettingsScreen() {
           value={CONTACT}
           onPress={() => Linking.openURL(`mailto:${CONTACT}`)}
         />
-        {/* 로그인 여부와 관계없이 보여야 하고, 첫 화면에서 3단계 이내여야 한다 */}
         <Info
           label="이용약관"
           value="보기"
@@ -184,7 +181,6 @@ export function SettingsScreen() {
         </Text>
       </View>
 
-      {/* App Store 심사 기준 5.1.1(v): 가입이 되는 앱은 앱 안에서 탈퇴할 수 있어야 한다 */}
       {session && (
         <View style={styles.group}>
           <Pressable

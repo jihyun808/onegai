@@ -6,7 +6,6 @@ export interface FavoritesResponse {
   groups: SongGroup[]
 }
 
-/** 저장 단위는 브랜드별 번호 하나다. 화면의 곡(그룹)을 여기에 맞춰 펼친다. */
 export interface FavoriteSong {
   brand: Brand
   no: string
@@ -49,7 +48,6 @@ export function remove(song: FavoriteSong): Promise<void> {
   return request(`/${song.brand}/${encodeURIComponent(song.no)}`, { method: 'DELETE' })
 }
 
-/** 담아둔 곡을 전부 지운다. */
 export function clear(): Promise<void> {
   return request('', { method: 'DELETE' })
 }

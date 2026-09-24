@@ -2,7 +2,6 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import { colors, fonts } from '../theme'
 
-/** 결과 없음, 오류, 빈 목록을 같은 형태로 보여준다. */
 export function StateMessage({ title, description }: { title: string; description?: string }) {
   return (
     <View style={styles.state}>

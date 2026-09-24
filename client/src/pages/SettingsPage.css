@@ -27,7 +27,6 @@
   border-bottom: 1px solid var(--line-thin);
 }
 
-/* 세그먼트가 들어가는 줄은 아래로 쌓는다 */
 .settings__row--stack {
   flex-direction: column;
   align-items: stretch;
@@ -86,7 +85,6 @@
   line-height: 1.6;
 }
 
-/* 켜짐/꺼짐 스위치 */
 .settings__switch {
   flex-shrink: 0;
   position: relative;
@@ -121,7 +119,6 @@
   left: 20px;
 }
 
-/* 되돌릴 수 없는 동작이라 눈에 띄되 먼저 눌리지 않게 아래에 둔다 */
 .settings__withdraw {
   align-self: flex-start;
   padding: 8px 2px;
@@ -131,7 +128,6 @@
   text-underline-offset: 3px;
 }
 
-/* 누른 버튼 바로 아래에 붙는다. 버튼과 한 덩어리로 보이도록 여백을 좁힌다 */
 .settings__notice {
   margin: 6px 2px 2px;
   color: var(--ink-soft);

@@ -20,7 +20,6 @@ export function SearchInput({ value, onChange, busy }: Props) {
         placeholder="곡명 또는 가수명으로 검색"
         placeholderTextColor={colors.inkFaint}
         accessibilityLabel="곡명 또는 가수명으로 검색"
-        // 일본어 입력을 자주 쓰므로 자동 대문자/교정은 끈다
         autoCapitalize="none"
         autoCorrect={false}
         spellCheck={false}

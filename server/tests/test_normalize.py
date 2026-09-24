@@ -1,5 +1,3 @@
-"""정규화 5개 규칙 검증."""
-
 import pytest
 
 from app.utils.normalize import (
@@ -34,13 +32,12 @@ def test_normalize_text_matches(left, right, rule):
 @pytest.mark.parametrize(
     "left,right",
     [
-        ("メイド", "メード"),  # 장음 부호는 접지 않는다
+        ("メイド", "メード"),
         ("夜に駆ける", "朝に駆ける"),
         ("ABC", "ABD"),
     ],
 )
 def test_normalize_text_keeps_distinct(left, right):
-    """과잉 폴딩 방지 — 다른 곡이 같은 키가 되면 안 된다."""
     assert normalize_text(left) != normalize_text(right)
 
 
@@ -55,7 +52,6 @@ def test_normalize_text_empty():
         ("High4,아이유", ["High4", "아이유"]),
         ("Ado feat. XX", ["Ado", "XX"]),
         ("A ft. B", ["A", "B"]),
-        # 단어 경계가 없으면 이름이 쪼개진다 (회귀 방지)
         ("Daft Punk", ["Daft Punk"]),
         ("Aftermath", ["Aftermath"]),
         ("Left Eye", ["Left Eye"]),
@@ -72,20 +68,17 @@ def test_match_key_ignores_singer_order():
 
 
 def test_match_key_cross_brand_real_case():
-    """TJ와 금영의 실제 표기 차이."""
     tj = make_match_key("花に亡霊(映画'泣きたい私は猫をかぶる' OST)", "ヨルシカ")
     kumyoung = make_match_key("花に亡霊 (\"泣きたい私は猫をかぶる\"OST)", "ヨルシカ")
     assert tj == kumyoung
 
 
 class TestNormalizeQuery:
-    """캐시 키용 정규화는 공백/기호를 지우면 안 된다."""
 
     def test_absorbs_case_and_width(self):
         assert normalize_query("  YOASOBI ") == normalize_query("ＹＯＡＳＯＢＩ")
 
     def test_keeps_distinct_queries_apart(self):
-        # manana는 둘을 다르게 취급한다. 같은 키가 되면 결과가 섞인다.
         assert normalize_query("ONE PIECE") != normalize_query("ONEPIECE")
 
     def test_collapses_repeated_whitespace(self):

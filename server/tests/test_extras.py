@@ -1,5 +1,3 @@
-"""번역 · 미리듣기 · 가사. 핵심은 '키가 없어도 안 터진다'."""
-
 import pytest
 import requests
 
@@ -25,7 +23,6 @@ class FakeResponse:
 
 
 class TestGracefulDisable:
-    """키가 없을 때 200 + available=False 여야 한다. 500이 아니다."""
 
     def test_translate_without_key(self, client, app):
         app.config["DEEPL_API_KEY"] = ""
@@ -39,11 +36,9 @@ class TestGracefulDisable:
         assert res.status_code == 200
         body = res.get_json()
         assert body["available"] is False
-        # 가사가 없어도 찾아갈 곳은 준다
         assert body["search_url"].startswith("https://www.google.com/search?q=")
 
     def test_no_network_call_without_key(self, app, monkeypatch):
-        """키가 없으면 외부를 아예 부르지 않는다."""
         def boom(*a, **k):
             raise AssertionError("키가 없는데 외부를 호출했다")
 
@@ -121,7 +116,6 @@ class TestTranslate:
 
 
 class TestPreview:
-    """iTunes Search는 키가 없어도 동작한다."""
 
     def test_picks_matching_track(self, app, monkeypatch):
         monkeypatch.setattr(requests, "get", lambda *a, **k: FakeResponse({"results": [
@@ -145,7 +139,6 @@ class TestPreview:
         assert result["artwork_url"] == "http://a/300x300bb.jpg"
 
     def test_rejects_unrelated_results(self, app, monkeypatch):
-        """iTunes는 느슨하게 매칭하므로 엉뚱한 곡은 걸러야 한다."""
         monkeypatch.setattr(requests, "get", lambda *a, **k: FakeResponse({"results": [
             {"trackName": "전혀다른곡", "artistName": "누구",
              "previewUrl": "https://x/9.m4a", "artworkUrl100": ""},
@@ -170,10 +163,7 @@ class TestPreview:
 
 
 def kysing_page(rows):
-    """금영 검색 결과 HTML을 흉내 낸다. 첫 블록은 실제 사이트처럼 헤더다.
 
-    rows: [(제목, 가수, [(한글발음, 후리가나, 원문), ...]), ...]
-    """
     html = ['<ul class="search_chart_list clear"><li>헤더</li></ul>']
     for title, singer, lines in rows:
         body = "".join(
@@ -204,7 +194,6 @@ LINES = [
 
 
 class TestLyrics:
-    """가사는 금영 검색 결과 HTML에 딸려 온다. 세 줄 묶음을 갈라 쓴다."""
 
     def test_success(self, app, monkeypatch):
         monkeypatch.setattr(kysing, "_fetch", lambda *a, **k: kysing_page(
@@ -213,14 +202,12 @@ class TestLyrics:
             result = lyrics.find("花に亡霊", "ヨルシカ")
         assert result["available"] is True
         assert result["provider"] == "금영"
-        # 후리가나는 루비 위치가 빠져 있어 버리고, 발음과 원문만 남긴다
         assert result["lines"] == [
             {"ko": "모오 와스레테", "ja": "もう忘れて"},
             {"ko": "시맛타카나", "ja": "しまったかな"},
         ]
 
     def test_matches_title_ignoring_brackets(self, app, monkeypatch):
-        """금영 제목에는 `("BEASTARS"OP)` 같은 꼬리표가 붙는다."""
         monkeypatch.setattr(kysing, "_fetch", lambda *a, **k: kysing_page(
             [('怪物 ("BEASTARS"OP)', "YOASOBI", LINES)]))
         with app.app_context():
@@ -238,7 +225,6 @@ class TestLyrics:
         assert result["matched_title"] == "夜に駆ける"
 
     def test_intro_without_pronunciation_keeps_rest_aligned(self, app, monkeypatch):
-        """'La la la' 도입부는 발음 줄이 없다. 여기서 밀리면 뒤가 통째로 어긋난다."""
         page = (
             '<ul class="search_chart_list clear"><li>헤더</li></ul>'
             '<ul class="search_chart_list clear"><li>♡</li><li>44684</li>'
@@ -259,7 +245,6 @@ class TestLyrics:
         ]
 
     def test_hiragana_only_line_is_not_mistaken_for_furigana(self, app, monkeypatch):
-        """후리가나는 구분선이 있다. 그게 없으면 히라가나뿐이어도 가사 원문이다."""
         monkeypatch.setattr(kysing, "_fetch", lambda *a, **k: kysing_page(
             [("Pale Blue", "米津玄師", [("즛토 즛토", "", "ずっと ずっと")])]))
         with app.app_context():
@@ -295,11 +280,7 @@ class TestLyrics:
         assert len(calls) == 1
 
     def test_lyrics_switch_does_not_touch_search(self, app, monkeypatch):
-        """`LYRICS_ENABLED=false`는 가사만 끈다. 검색은 그대로 돌아야 한다.
 
-        권리자가 가사만 안 된다고 할 때 쓰는 스위치다 (37번).
-        `KYSING_ENABLED`를 내리면 금영 공식 검색까지 꺼져 최신곡이 사라진다.
-        """
         def boom(*a, **k):
             raise AssertionError("가사가 꺼졌는데 금영을 호출했다")
 
@@ -309,7 +290,6 @@ class TestLyrics:
             result = lyrics.find("花に亡霊", "ヨルシカ")
             assert result["available"] is False
             assert result["search_url"]
-            # 검색 쪽 스위치는 건드리지 않았다
             assert app.config["KYSING_ENABLED"] is True
 
 
@@ -327,14 +307,9 @@ class TestValidation:
 
 
 class TestCacheNamespace:
-    """검색 캐시와 부가 기능 캐시가 이름 공간을 나눠 써야 한다."""
 
     def test_lyrics_search_and_lyrics_lookup_do_not_collide(self, app):
-        """`type=lyrics` 검색과 `/api/lyrics` 조회는 셋 다 3토막이라 겹칠 수 있었다.
 
-        `lyrics:all:yoasobi`가 "brand=all에서 yoasobi 가사 검색"이면서
-        동시에 "ALL(곡)/YOASOBI의 가사"로 읽혔다.
-        """
         with app.app_context():
             search = _cache_key("YOASOBI", "lyrics", "all")
             lookup = cache.make_key(
@@ -349,10 +324,7 @@ class TestCacheNamespace:
 
 class TestLyricsLookupResilience:
     def test_retries_when_first_page_comes_back_empty(self, app, monkeypatch):
-        """금영은 부하가 걸리면 빈 페이지를 간헐적으로 준다.
 
-        이걸 진짜 0건으로 받아들이면 '가사 없음'이 하루 동안 캐시된다.
-        """
         pages = ["", kysing_page([("花に亡霊", "ヨルシカ", LINES)])]
         monkeypatch.setattr(kysing, "_fetch", lambda *a, **k: pages.pop(0))
         with app.app_context():

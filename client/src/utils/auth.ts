@@ -1,9 +1,5 @@
 import type { Session } from '../hooks/useAuth'
 
-/**
- * 서버가 어느 입력이 문제인지 `field`로 알려준다.
- * 그래야 해당 입력창 아래에 메시지를 붙일 수 있다.
- */
 export class AuthRequestError extends Error {
   field?: 'username' | 'password' | 'avatar'
 
@@ -18,7 +14,6 @@ async function request(path: string, init: RequestInit = {}) {
   const response = await fetch(`/api/auth${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...init.headers },
-    // 세션 쿠키를 주고받으려면 필요하다
     credentials: 'same-origin',
   })
 
@@ -52,7 +47,6 @@ export function logout(): Promise<void> {
   return request('/logout', { method: 'POST' })
 }
 
-/** 로그인 상태 확인. 안 했으면 null. */
 export function me(): Promise<Session | null> {
   return request('/me')
 }
@@ -64,7 +58,6 @@ export function updateMe(patch: {
   return request('/me', { method: 'PATCH', body: JSON.stringify(patch) })
 }
 
-/** 회원 탈퇴. 계정과 즐겨찾기가 함께 사라진다. */
 export function remove(): Promise<void> {
   return request('/me', { method: 'DELETE' })
 }

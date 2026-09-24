@@ -2,7 +2,6 @@ import { StyleSheet } from 'react-native'
 
 import { colors, fonts } from '../theme'
 
-/** 로그인·가입·내 정보 수정이 함께 쓰는 입력 모양 (웹 AuthForm.css). */
 export const form = StyleSheet.create({
   wrap: { gap: 13 },
   field: { gap: 5 },

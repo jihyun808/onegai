@@ -18,7 +18,6 @@ const SORT_OPTIONS = [
 const APP_VERSION = "0.1.0";
 const CONTACT = "contact.eeez@gmail.com";
 
-/** 안내가 붙는 자리. 누른 버튼 바로 아래에만 뜬다. */
 type NoticeSpot = "export" | "clear" | "withdraw";
 
 function Notice({
@@ -44,8 +43,6 @@ export function SettingsPage() {
   const [confirming, setConfirming] = useState<"clear" | "withdraw" | null>(
     null,
   );
-  // 어느 버튼의 결과인지까지 들고 있는다. 안내가 화면 아래에 따로 뜨면
-  // 무엇에 대한 말인지 알기 어렵고, 누른 곳에서 시선이 멀어진다.
   const [notice, setNotice] = useState<{
     where: NoticeSpot;
     text: string;
@@ -73,7 +70,6 @@ export function SettingsPage() {
       await navigator.clipboard.writeText(text);
       setNotice({ where: "export", text: `${items.length}곡을 복사했어요.` });
     } catch {
-      // 클립보드 권한이 없거나 https가 아닐 때
       setNotice({ where: "export", text: "복사하지 못했어요." });
     }
   }
@@ -172,10 +168,6 @@ export function SettingsPage() {
           <span>{CONTACT}</span>
         </a>
 
-        {/*
-          로그인 여부와 관계없이 보여야 하고, 첫 화면에서 3단계 이내여야 한다
-          (개인정보 처리방침 작성지침 Part Ⅱ-4). 설정은 홈에서 1단계다.
-        */}
         <a
           className="settings__info settings__info--link"
           href={TERMS_URL}

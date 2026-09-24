@@ -5,16 +5,10 @@
   overflow-wrap: anywhere;
 }
 
-/*
- * 가사는 길다. 팝업이 화면을 넘지 않게 안에서만 스크롤시킨다.
- * 하단 네비게이션에 가리지 않도록 화면 높이에서 여유를 뺀다.
- */
 .lyrics__body {
   max-height: min(52vh, 420px);
   overflow-y: auto;
-  /* 팝업 안에서만 스크롤되게. 끝까지 내려도 뒤 목록이 딸려 움직이지 않는다 */
   overscroll-behavior: contain;
-  /* 스크롤한 가사가 가수명 바로 밑에서 잘려 보이지 않도록 경계를 긋는다 */
   border-top: 1px solid var(--line-thin);
   padding: 4px 4px 0 0;
 }
@@ -39,12 +33,10 @@
   list-style: none;
 }
 
-/* 구절 사이는 여백으로만 나눈다. 줄마다 선을 그으면 가사가 표처럼 보인다 */
 .lyrics__line + .lyrics__line {
   margin-top: 12px;
 }
 
-/* 한글 발음이 주인공이다 — 일본어를 못 읽어도 따라 부르라고 넣은 것이라 */
 .lyrics__ko {
   display: block;
   font-size: 15px;
@@ -80,7 +72,6 @@
 
 .lyrics__search {
   padding: 8px 16px;
-  /* 항상 떠 있는 링크라 가사보다 튀면 안 된다. 두께는 두되 색만 옅게 */
   border: 1.5px solid var(--line-thin);
   border-radius: var(--radius-pill);
   color: var(--ink);

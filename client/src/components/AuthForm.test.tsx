@@ -27,7 +27,6 @@ describe('AuthForm — 가입 동의', () => {
   })
 
   it('둘 중 하나만 체크해도 막는다', async () => {
-    // 약관 동의와 개인정보 수집·이용 동의는 성격이 다르므로 따로 받아야 한다
     const user = userEvent.setup()
     const onSubmit = vi.fn().mockResolvedValue(undefined)
     render(<AuthForm mode="signup" onSubmit={onSubmit} />)
@@ -53,7 +52,6 @@ describe('AuthForm — 가입 동의', () => {
   })
 
   it('약관 링크는 새 탭으로 안전하게 연다', () => {
-    // 팝업 안에서 이동해 버리면 입력하던 내용이 날아간다
     render(<AuthForm mode="signup" onSubmit={vi.fn()} />)
 
     for (const name of ['이용약관', '개인정보 수집·이용']) {

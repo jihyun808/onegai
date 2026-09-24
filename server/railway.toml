@@ -1,22 +1,10 @@
-# Railway 웹 서비스 설정 (config-as-code).
-#
-# 대시보드에서 서비스 Settings를 이렇게 맞춘다:
-#   Root Directory   /server
-#   Config file path /server/railway.toml   ← Root Directory를 따르지 않아 절대경로로 적는다
-#
-# 환경변수는 README의 "배포 (Railway)"를 본다.
-
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
-# 서버 코드가 바뀐 푸시만 재배포한다. 프론트나 문서만 고친 커밋은 건너뛴다.
 watchPatterns = ["/server/**"]
 
 [deploy]
-# Dockerfile의 기본 CMD(gunicorn)를 그대로 쓴다. 포트는 Railway가 주는 PORT를 따른다.
 
-# 새 버전이 트래픽을 받기 전에 아직 안 돌린 db/*.sql을 적용한다.
-# 실패하면 배포가 멈추고 이전 버전이 계속 돈다.
 preDeployCommand = ["flask --app run init-db"]
 
 healthcheckPath = "/api/health"

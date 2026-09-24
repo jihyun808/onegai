@@ -7,10 +7,6 @@ import { HomeIcon, SettingsIcon, UserIcon } from './icons'
 
 export type Tab = 'mypage' | 'home' | 'settings'
 
-/*
- * 바 모양. 가운데가 위로 솟은 언덕이고 그 자리에 홈 버튼이 떠 있다 (웹과 같은 도형).
- * 비율을 유지한 채 화면 폭에 맞춰 늘리므로 언덕이 찌그러지지 않는다.
- */
 const VIEW_W = 480
 const VIEW_H = 115
 const BAR_PATH = [
@@ -77,7 +73,6 @@ export function BottomNav({ value, onChange }: Props) {
           <Path d={BAR_PATH} fill={colors.paper} stroke={colors.line} strokeWidth={1} />
         </Svg>
 
-        {/* 좌우 탭은 바의 납작한 부분에 둔다 (웹: 위에서 40% 아래) */}
         <View style={[styles.items, { top: height * 0.4 }]}>
           <Item
             on={value === 'mypage'}
@@ -108,7 +103,6 @@ export function BottomNav({ value, onChange }: Props) {
           <HomeIcon size={26} color={homeOn ? colors.paper : colors.inkFaint} />
         </Pressable>
       </View>
-      {/* 홈 인디케이터 영역까지 바 색으로 채운다 */}
       <View style={{ height: bottom, backgroundColor: colors.paper }} />
     </View>
   )

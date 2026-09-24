@@ -109,7 +109,6 @@
   color: var(--ink);
 }
 
-/* 로그인 후에는 부가 동작이라 작게 둔다 */
 .profile__links {
   display: flex;
   align-items: center;

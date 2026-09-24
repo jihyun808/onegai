@@ -1,12 +1,3 @@
-"""회원가입 · 로그인 · 내 정보.
-
-세션은 Flask의 서명 쿠키를 쓴다. httpOnly라 자바스크립트가 읽을 수 없어
-XSS로 토큰이 새는 경로가 막힌다(SESSION_COOKIE_* 설정 참고).
-
-실패 응답은 어느 입력이 문제인지 `field`로 알려준다.
-클라이언트가 해당 입력창 아래에 메시지를 붙일 수 있게 하기 위함이다.
-"""
-
 from functools import wraps
 
 from flask import Blueprint, jsonify, request, session
@@ -38,11 +29,9 @@ def login_required(view):
     return wrapper
 
 
-# 가입은 자주 할 일이 아니다. 한 곳에서 계정을 무더기로 만드는 것을 막는다.
 @bp.post("/register")
 @rate_limit(limit=10, window=60 * 60)
 def register():
-    """POST /api/auth/register {username, password}"""
     body = request.get_json(silent=True) or {}
     try:
         created = auth_service.register(body.get("username"), body.get("password"))
@@ -55,16 +44,13 @@ def register():
     return jsonify(created), 201
 
 
-# 계정당 5회 제한과 별개다. 아이디를 바꿔가며 시도하면 그쪽 카운터는 안 오른다.
 @bp.post("/login")
 @rate_limit(limit=20, window=60)
 def login():
-    """POST /api/auth/login {username, password}"""
     body = request.get_json(silent=True) or {}
     try:
         found = auth_service.login(body.get("username"), body.get("password"))
     except AuthError as exc:
-        # 인증 실패는 401이지만, 입력 형식 문제는 400으로 남긴다
         status = 401 if exc.field == "password" else 400
         return _fail(exc, status)
 
@@ -82,14 +68,12 @@ def logout():
 
 @bp.get("/me")
 def me():
-    """로그인 상태 확인. 안 했으면 null을 준다(401이 아니다)."""
     user_id = session.get(SESSION_KEY)
     if not user_id:
         return jsonify(None)
 
     found = user.get(user_id)
     if found is None:
-        # 계정이 지워졌는데 쿠키만 남은 경우
         session.clear()
         return jsonify(None)
 
@@ -100,7 +84,6 @@ def me():
 @rate_limit(limit=20, window=60)
 @login_required
 def update_me():
-    """PATCH /api/auth/me {username?, avatar?}"""
     body = request.get_json(silent=True) or {}
     try:
         updated = auth_service.update_profile(
@@ -117,11 +100,7 @@ def update_me():
 @bp.delete("/me")
 @login_required
 def delete_me():
-    """회원 탈퇴.
 
-    즐겨찾기·검색이력은 FK ON DELETE CASCADE로 함께 지워진다.
-    되돌릴 수 없으므로 클라이언트에서 한 번 더 확인받는다.
-    """
     user.delete(session[SESSION_KEY])
     session.clear()
     return jsonify({"ok": True})

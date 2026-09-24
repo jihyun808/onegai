@@ -34,7 +34,6 @@ export function MyScreen() {
   const { session, login, signup, logout, updateProfile } = useAuth()
   const { items, toggle, has } = useBookmarks(Boolean(session))
   const [sort, setSort] = useState<Sort>('recent')
-  // 어떤 팝업을 띄울지. null이면 안 띄운다.
   const [auth, setAuth] = useState<AuthMode | null>(null)
   const [editing, setEditing] = useState(false)
 

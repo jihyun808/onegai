@@ -9,7 +9,6 @@ import { LyricsModal } from './LyricsModal'
 import { hashSeed, Sketch } from './Sketch'
 import { Spinner } from './Spinner'
 
-/** 뱃지 순서를 고정한다 (태진 먼저). 데이터 순서에 흔들리지 않게. */
 const BRAND_ORDER: Brand[] = ['tj', 'kumyoung']
 
 const BRAND_LABEL: Record<Brand, string> = {
@@ -21,7 +20,6 @@ interface Props {
   group: SongGroup
   bookmarked: boolean
   onToggleBookmark: (group: SongGroup) => void
-  /** 카드 모양을 조금씩 달리하는 데만 쓴다 */
   index?: number
 }
 
@@ -31,17 +29,11 @@ export const SongCard = memo(function SongCard({
   onToggleBookmark,
   index = 0,
 }: Props) {
-  // 팝업을 열 때 비로소 가사를 불러온다. 카드 50장이면 요청도 50번이라
-  // 미리 받아둘 수는 없다.
   const [showLyrics, setShowLyrics] = useState(false)
   const preview = usePreview(group.match_key, group.title, group.singer)
 
   return (
     <Sketch variant={index} seed={hashSeed(group.match_key)} style={styles.song}>
-      {/*
-        누르기 전에는 빈 ▶ 자리다. 앨범아트도 이때 처음 받아온다 —
-        카드마다 미리 부르면 목록 한 장에 iTunes 요청이 50번 나간다.
-      */}
       <Pressable
         style={[
           styles.play,
@@ -75,10 +67,6 @@ export const SongCard = memo(function SongCard({
 
       <View style={styles.body}>
         <Text style={styles.title}>{group.title}</Text>
-        {/*
-          번역 제목은 원어 아래에 작게 둔다. 노래방 기계에 찍혀 있는 것은
-          원어라, 그쪽이 커야 번호를 찾아 누를 때 헷갈리지 않는다.
-        */}
         {group.title_ko && group.title_ko !== group.title && (
           <Text style={styles.titleKo}>{group.title_ko}</Text>
         )}
@@ -92,7 +80,6 @@ export const SongCard = memo(function SongCard({
         </Pressable>
       </View>
 
-      {/* 번호가 이 화면의 주인공이라 우측에 크게 나란히 둔다 */}
       <View style={styles.numbers}>
         {BRAND_ORDER.map((brand) => {
           const numbers = group.brands[brand]
@@ -110,7 +97,6 @@ export const SongCard = memo(function SongCard({
                   </Text>
                 ))
               ) : (
-                // 한쪽에만 있는 곡도 자리를 비워 표의 열을 맞춘다
                 <Text style={[styles.no, { color: colors.inkFaint }]}>—</Text>
               )}
             </View>
