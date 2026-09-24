@@ -27,6 +27,7 @@ import requests
 from flask import current_app
 
 from app.models import song
+from app.services import kysing
 from app.services.kysing import USER_AGENT, _parse as parse_kysing_rows
 from app.utils import db
 
@@ -34,6 +35,8 @@ logger = logging.getLogger(__name__)
 
 MANANA_RELEASE = "https://api.manana.kr/karaoke/release/{ym}/{brand}.json"
 KYSING_LATEST = "https://kysing.kr/latest/"
+# 금영 '노래방 책' 일본곡 색인. 검색과 달리 **국가로 좁혀 전량 열거**할 수 있다.
+KYSING_BOOK = "https://kysing.kr/karaoke-book/"
 
 # manana에 데이터가 있는 가장 이른 달 (그 이전은 전부 0건이다)
 EARLIEST = date(2000, 1, 1)
@@ -42,6 +45,14 @@ EARLIEST = date(2000, 1, 1)
 # 급할 이유가 없다 — 백필은 한 번만 돌리고, 이후에는 하루 몇 건이다.
 BACKFILL_WORKERS = 2
 REQUEST_DELAY = 0.4
+
+# 색인 크롤은 **혼자, 아주 천천히** 돈다.
+# 전량 열거라 남의 서버에 부담이 가장 큰 작업이라서,
+# 동시 요청 없이 요청 사이에 넉넉한 간격을 둔다. 107문자 × 2~3페이지에
+# 3초 간격이면 15분 안팎이고, 하루 한 번이면 초당 0.0003요청 꼴이다.
+BOOK_REQUEST_DELAY = 3.0
+# 한 색인 문자가 이보다 길면 무언가 잘못된 것이다 (페이지당 200행 기준).
+BOOK_MAX_PAGES = 15
 
 # 노래방에 아직 등록되지 않은 예정곡은 받지 않는다.
 # 금영은 발매 예정월을 미리 올려두는데, 그 번호를 눌러도 기계에 곡이 없다.
@@ -194,6 +205,169 @@ def crawl_kysing_latest(max_pages=20):
     _record("kysing", "kumyoung", "latest", len(entries), saved)
     logger.info("금영 신곡: %d곡 확인, %d곡 저장", len(entries), saved)
     return {"found": len(entries), "saved": saved}
+
+
+# 색인 문자 107종. 라이브 페이지의 색인 목록에서 그대로 옮겼다.
+# 히라가나 전수 + 其他(가나로 시작하지 않는 것) + A~Z + ETC(0).
+KYSING_BOOK_INDEX = (
+    "ぁ か が さ ざ た だ な は ば ぱ ま や ゃ ら わ ん "
+    "い ぃ き ぎ し じ ち ぢ に ひ び ぴ み り "
+    "う ぅ く ぐ す ず つ づ ぬ ふ ぶ ぷ む ゆ ゅ る っ "
+    "え ぇ け げ せ ぜ て で ね へ べ ぺ め れ "
+    "お ぉ こ ご そ ぞ と ど の ほ ぼ ぽ も よ ょ ろ を 其他 "
+    "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z"
+).split() + ["0"]
+
+# 색인 행: 곡번호 / 제목 / 가수. 제목과 가수는 **속성과 본문 두 군데**에 있다.
+#
+# 둘 다 읽어서 긴 쪽을 쓴다. 어느 하나도 믿을 수 없기 때문이다.
+#   - 본문은 화면 폭에 맞춰 잘릴 수 있다 (`..`로 끝난다)
+#   - 속성은 제목에 따옴표가 들어가면 거기서 끊긴다. 금영이 이스케이프를
+#     안 해서 `title="* ~アスタリスク~ ("BLEACH"OP)"`가 `* ~アスタリスク~ (`로 읽힌다
+_BOOK_ROW = re.compile(
+    r'index_search_num">(\d+)</li>\s*'
+    r'<li class="index_search_tit" title="(.*?)"[^>]*>(.*?)</li>\s*'
+    r'<li class="index_search_sng" title="(.*?)"[^>]*>(.*?)</li>',
+    re.S,
+)
+_TRUNCATED = re.compile(r"(\.{2,}|…)\s*$")
+
+
+def _fetch_kysing_book(index_char, page):
+    """색인 한 장. **여기서만 느린 간격을 쓴다.**"""
+    time.sleep(BOOK_REQUEST_DELAY)
+    url = f"{KYSING_BOOK}?" + urlencode(
+        {"city": "jp", "s_cd": 2, "keyword": "", "s_page": page, "s_value": index_char}
+    )
+    response = requests.get(
+        url,
+        headers={"User-Agent": USER_AGENT},
+        timeout=current_app.config["KYSING_TIMEOUT"],
+    )
+    response.raise_for_status()
+    return response.text
+
+
+def _fuller(attr, text):
+    """속성과 본문 중 온전해 보이는 쪽. 둘 다 잘렸으면 긴 쪽."""
+    attr = unescape(attr or "").strip()
+    text = unescape(re.sub(r"<[^>]+>", "", text or "")).strip()
+
+    if _TRUNCATED.search(text) and attr:
+        return attr
+    return text if len(text) >= len(attr) else attr
+
+
+def parse_kysing_book(html):
+    """색인 페이지를 manana 스키마로. 발매일은 색인에 없어 비운다."""
+    rows = []
+
+    for no, tit_attr, tit_text, sng_attr, sng_text in _BOOK_ROW.findall(html):
+        title = _fuller(tit_attr, tit_text)
+        singer = _fuller(sng_attr, sng_text)
+        if not title:
+            continue
+        rows.append(
+            {
+                "brand": "kumyoung",
+                "no": no,
+                "title": title,
+                "singer": singer,
+                "composer": "",
+                "lyricist": "",
+                # 색인에는 출시월이 없다. 이미 있는 행은 upsert가 유지한다.
+                "release": "",
+            }
+        )
+
+    return rows
+
+
+def _looks_truncated(row):
+    """색인이 잘라서 준 행인지.
+
+    금영은 표시폭(30자 남짓)에서 `..`로 자른다. 제목에 따옴표가 있으면
+    잘린 자리가 `(`나 `"`로 끝나기도 한다.
+    """
+    for value in (row["title"], row["singer"]):
+        if _TRUNCATED.search(value) or value.endswith(('("', "(", '"')):
+            return True
+    return False
+
+
+def _drop_truncated(rows):
+    """잘린 행은 버린다.
+
+    **금영은 어디서도 온전한 제목을 주지 않는다.** 색인·검색·곡번호 상세를
+    모두 확인했는데 전부 30자 남짓에서 `..`로 자른다 (2026-08-19 실측,
+    예: 44418 `366LOVEダイアリー ("KING OF PRISM -Shiny..`).
+
+    그래서 보정 요청을 보내 봐야 소용이 없다 — 남의 서버만 친다.
+    잘린 제목을 저장하면 **다른 소스로 온전하게 들어와 있던 행을 덮어쓰고**,
+    match_key가 어긋나 태진 번호와 한 카드로 묶이지 않는다.
+
+    버려도 그 곡을 못 찾는 것은 아니다. 검색할 때 공식을 직접 조회하는
+    경로가 그대로 남아 있다 (5번의 폴백 사슬).
+    """
+    kept = [r for r in rows if not _looks_truncated(r)]
+    dropped = len(rows) - len(kept)
+
+    if dropped:
+        logger.info("제목이 잘린 %d행은 넣지 않습니다 (전체 %d행)", dropped, len(rows))
+
+    return kept
+
+
+def crawl_kysing_book(index_chars=None, max_pages=BOOK_MAX_PAGES):
+    """금영 일본곡을 색인으로 전량 훑는다.
+
+    **가수 이름을 몰라도 빠짐없이 가져온다는 것이 요점이다.** 기존
+    fill_gap()은 '아는 가수'로만 검색해서, 모르는 가수의 곡은 영영 못 넣었다.
+
+    금영 검색 페이지와 달리 여기는 `city=jp`로 일본곡만 좁혀 준다.
+    (5번에 '금영은 국가 필터가 없다'고 적어 두었던 것은 틀렸다.)
+
+    **정중함이 최우선이다.** 동시 요청 없이 한 장씩, 3초 간격으로 받는다.
+    한 색인 문자가 실패하면 그 문자만 건너뛰고 계속한다 — 전체를 멈추면
+    이미 받은 것도 못 쓴다.
+    """
+    chars = list(index_chars or KYSING_BOOK_INDEX)
+    collected = {}
+    failed = []
+
+    for char in chars:
+        for page in range(1, max_pages + 1):
+            try:
+                rows = parse_kysing_book(_fetch_kysing_book(char, page))
+            except Exception as exc:
+                logger.warning("금영 색인 %r %d페이지 실패: %s", char, page, exc)
+                failed.append(char)
+                break
+
+            if not rows:
+                break
+
+            fresh = [r for r in rows if r["no"] not in collected]
+            for row in fresh:
+                collected[row["no"]] = row
+
+            # 새 번호가 하나도 없으면 마지막 페이지를 넘긴 것이다
+            if not fresh:
+                break
+
+    entries = _drop_truncated(list(collected.values()))
+    saved = song.upsert(entries, "kysing-book") if entries else 0
+
+    status = "failed" if failed and not entries else "ok"
+    _record(
+        "kysing-book", "kumyoung", "jp-index", len(entries), saved, status,
+        f"실패한 색인: {','.join(failed)}" if failed else "",
+    )
+    logger.info(
+        "금영 일본곡 색인: %d곡 확인, %d행 반영 (실패 %d문자)",
+        len(entries), saved, len(failed),
+    )
+    return {"found": len(entries), "saved": saved, "failed": failed}
 
 
 def japanese_artists(brand="tj", limit=None):

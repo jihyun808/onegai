@@ -36,7 +36,8 @@ USER_AGENT = (
 
 # 사이트의 검색 카테고리.
 # 가사(4)는 금영에만 있다 — TJ 공식에는 가사 검색이 없다.
-CATEGORY = {"song": 2, "singer": 7, "lyrics": 4}
+# "no"는 곡번호 정확검색. 색인이 잘라서 준 행을 보정할 때 쓴다 (40번).
+CATEGORY = {"song": 2, "singer": 7, "lyrics": 4, "no": 1}
 
 # 한 페이지에 15건. 폭주를 막기 위해 상한을 둔다.
 PAGE_SIZE = 15

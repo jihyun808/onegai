@@ -73,6 +73,24 @@ def _text(fragment):
     return _LABEL.sub("", " ".join(unescape(_TAG.sub(" ", fragment)).split()))
 
 
+# TJ는 구형 기기에서 안 나오는 곡의 **제목 앞에** 안내를 붙여 내보낸다
+# (`60이상 반주기 전용곡 シルエット(NARUTO...)`). 제목의 일부가 아니다.
+#
+# 이걸 그대로 두면 금영의 같은 곡과 match_key가 달라져 **한 카드로 안 묶인다.**
+# 실제로 나루토 '실루엣'이 금영 번호만 있는 카드와 태진 번호만 있는 카드로
+# 따로 떴다. 실측(태진 265건)에서 16건이 이 접두어를 달고 있었다.
+_DEVICE_NOTE = re.compile(r"^\s*\d+\s*이상\s*반주기\s*전용곡\s*")
+
+
+def _strip_device_note(title):
+    """제목 앞에 붙은 기기 안내를 뗀다.
+
+    안내 자체는 노래방에서 쓸모 있는 정보지만(구형 기기에서 안 나온다),
+    **제목 칸에 섞여 오면 곡을 식별할 수 없다.** 지금은 떼는 쪽을 택했다.
+    """
+    return _DEVICE_NOTE.sub("", title).strip()
+
+
 def _parse(page_html):
     rows = []
 
@@ -85,7 +103,7 @@ def _parse(page_html):
             {
                 "brand": "tj",
                 "no": cells[0],
-                "title": cells[1],
+                "title": _strip_device_note(cells[1]),
                 "singer": cells[2],
                 "lyricist": cells[3] if len(cells) > 3 else "",
                 "composer": cells[4] if len(cells) > 4 else "",

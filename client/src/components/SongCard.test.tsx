@@ -103,3 +103,45 @@ describe('SongCard', () => {
     )
   })
 })
+
+describe('번역 제목', () => {
+  const group = {
+    title: '晩餐歌',
+    title_ko: '만찬가',
+    singer: 'tuki.',
+    match_key: 'k',
+    brands: { tj: ['52788'] },
+    both: false,
+  }
+
+  it('원어 아래에 함께 보여준다', () => {
+    render(<SongCard group={group} bookmarked={false} onToggleBookmark={() => {}} />)
+
+    expect(screen.getByText('晩餐歌')).toBeInTheDocument()
+    expect(screen.getByText('만찬가')).toBeInTheDocument()
+  })
+
+  it('번역이 원어와 같으면 두 번 쓰지 않는다', () => {
+    render(
+      <SongCard
+        group={{ ...group, title_ko: '晩餐歌' }}
+        bookmarked={false}
+        onToggleBookmark={() => {}}
+      />,
+    )
+
+    expect(screen.getAllByText('晩餐歌')).toHaveLength(1)
+  })
+
+  it('번역이 없으면 자리도 만들지 않는다', () => {
+    const { container } = render(
+      <SongCard
+        group={{ ...group, title_ko: undefined }}
+        bookmarked={false}
+        onToggleBookmark={() => {}}
+      />,
+    )
+
+    expect(container.querySelector('.song__title-ko')).toBeNull()
+  })
+})

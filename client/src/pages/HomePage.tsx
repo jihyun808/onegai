@@ -4,7 +4,11 @@ import { SearchInput } from '../components/SearchInput'
 import { Segmented, type SegmentOption } from '../components/Segmented'
 import { SongCard } from '../components/SongCard'
 import { Spinner } from '../components/Spinner'
+import { MoreSearch } from '../components/MoreSearch'
+import { SearchTips } from '../components/SearchTips'
 import { StateMessage } from '../components/StateMessage'
+import { HOT_SEARCHES } from '../data/hotSearches'
+import { POPULAR } from '../data/popular'
 import { useAuth } from '../hooks/useAuth'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll'
@@ -95,10 +99,62 @@ export function HomePage({ query, setQuery, type, setType, brand, setBrand }: Se
       </div>
 
       {!hasQuery && (
-        <StateMessage
-          title="곡명이나 가수명을 입력해 보세요"
-          description="태진과 금영 번호를 한 번에 찾아드려요"
-        />
+        <>
+          <SearchTips />
+
+          {/*
+            뱃지는 한글로 보이지만 검색창에는 원어가 들어간다.
+            노래방 검색은 원어가 가장 잘 걸리는데 이용자는 한글로 기억한다.
+            가수 검색으로 함께 바꿔 준다 — 곡명으로 두면 0건이 나온다.
+          */}
+          <h2 className="home__heading home__heading--hot">많이 찾는 검색어</h2>
+          <ul className="home__hot">
+            {HOT_SEARCHES.map((hot) => (
+              <li key={hot.query}>
+                <button
+                  type="button"
+                  className="home__hot-badge"
+                  onClick={() => {
+                    setQuery(hot.query)
+                    setType('singer')
+                  }}
+                >
+                  {hot.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {/*
+            검색 전 화면을 비워두지 않는다. 인기곡은 손으로 넣은 스냅샷이라
+            서버를 부르지 않는다 (data/popular.ts).
+            카드는 검색 결과와 같은 SongCard라 즐겨찾기·가사·미리듣기가 그대로 된다.
+          */}
+          <h2 className="home__heading home__heading--popular">
+            J-POP 인기곡 <span className="home__count">50</span>
+          </h2>
+          {/*
+            50장을 다 늘어놓으면 홈이 끝없이 길어진다. 다섯 장 높이로 잘라
+            상자 안에서만 스크롤한다. overscroll-behavior가 상자 끝에서
+            페이지로 스크롤이 넘어가는 것을 막는다.
+          */}
+          <div className="home__popular-box">
+            <ol className="home__list home__list--ranked">
+              {POPULAR.map((group, index) => (
+                <li key={group.match_key} className="home__ranked-item">
+                  <span className="home__rank" aria-label={`${index + 1}위`}>
+                    {index + 1}
+                  </span>
+                  <SongCard
+                    group={group}
+                    bookmarked={has(group.match_key)}
+                    onToggleBookmark={toggle}
+                  />
+                </li>
+              ))}
+            </ol>
+          </div>
+        </>
       )}
 
       {hasQuery && error && (
@@ -111,10 +167,15 @@ export function HomePage({ query, setQuery, type, setType, brand, setBrand }: Se
         다음 페이지 응답이 0건이면 total만 0으로 덮여서 그렇게 됐었다.
       */}
       {hasQuery && !error && total === 0 && groups.length === 0 && !busy && !loadingMore2 && (
-        <StateMessage
-          title="검색 결과가 없어요"
-          description="다른 검색어나 검색 타입으로 시도해 보세요"
-        />
+        <>
+          <StateMessage
+            title="검색 결과가 없어요"
+            description="다른 검색어나 검색 타입으로 시도해 보세요"
+          />
+
+          {/* 0곡일 때야말로 공식까지 확인할 이유가 가장 크다 */}
+          <MoreSearch query={query} onLoadMore={searchMore} canLoadMore={canSearchMore} />
+        </>
       )}
 
       {hasQuery && !error && total > 0 && (
@@ -159,12 +220,14 @@ export function HomePage({ query, setQuery, type, setType, brand, setBrand }: Se
 
           {/*
             자체 DB는 크롤링 시점까지만 담고 있다. 찾는 곡이 안 보이면
-            눌러서 노래방 공식 사이트까지 확인할 수 있게 한다.
+            공식까지 확인하거나 브라우저로 나갈 수 있게 한다.
           */}
-          {canSearchMore && !hasMore && (
-            <button type="button" className="home__more" onClick={searchMore}>
-              찾는 곡이 없나요? 노래방 사이트에서 더 찾아보기
-            </button>
+          {!hasMore && (
+            <MoreSearch
+              query={query}
+              onLoadMore={searchMore}
+              canLoadMore={canSearchMore}
+            />
           )}
         </>
       )}

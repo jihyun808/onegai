@@ -62,6 +62,13 @@ export function SongCard({ group, bookmarked, onToggleBookmark }: Props) {
 
       <div className="song__body">
         <p className="song__title">{group.title}</p>
+        {/*
+          번역 제목은 원어 아래에 작게 둔다. 노래방 기계에 찍혀 있는 것은
+          원어라, 그쪽이 커야 번호를 찾아 누를 때 헷갈리지 않는다.
+        */}
+        {group.title_ko && group.title_ko !== group.title && (
+          <p className="song__title-ko">{group.title_ko}</p>
+        )}
         <p className="song__singer">{group.singer || '가수 정보 없음'}</p>
         <button
           className="song__lyrics"

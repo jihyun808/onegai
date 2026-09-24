@@ -47,6 +47,7 @@ def get_client():
             host=current_app.config["REDIS_HOST"],
             port=current_app.config["REDIS_PORT"],
             db=current_app.config["REDIS_DB"],
+            password=current_app.config["REDIS_PASSWORD"],
             decode_responses=True,
             socket_connect_timeout=1,
             socket_timeout=1,

@@ -2,11 +2,12 @@
 
 import logging
 import re
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 
 from flask import current_app
 
-from app.models import song
+from app.models import alias, song
 from app.services import kysing, manana, tjmedia
 from app.utils import cache
 from app.utils.normalize import (
@@ -45,19 +46,31 @@ _JAPANESE = re.compile(r"[ぁ-んァ-ヶ一-龥]")
 _KOREAN = re.compile(r"[가-힣]")
 
 
+def _is_korean_text(value):
+    """한글이 있고 일본어(가나·한자)가 전혀 없는 표기인지."""
+    value = value or ""
+    return bool(_KOREAN.search(value)) and not _JAPANESE.search(value)
+
+
 def _is_korean_song(item):
     """일본곡 앱에 섞여 들어온 한국곡인지.
 
     '미쿠'로 검색하면 드라마 '미미쿠스' OST 같은 한국곡이 딸려 온다.
     노래방 DB가 부분 문자열로 매칭하기 때문이다.
 
-    **보수적으로 판단한다** — 한글이 있고 일본어가 전혀 없을 때만 한국곡으로 본다.
-    한국어 제목으로 등록된 일본 가수 곡은 0건임을 확인했고(2026-08-05),
-    애니 주제가의 한국어 더빙판(예: 코요태 '우리의꿈(원피스 OP)')은
+    **제목과 가수를 각각 본다.** 붙여서 한 덩어리로 보면 둘 중 하나만
+    일본어여도 통과한다 — 제목이 일본어인 한국 가수 곡(아이유 '사쿠라'
+    같은 커버·일본 활동곡)이 그렇게 새어 들어왔다.
+
+    판정은 보수적이다. 한글이 있고 일본어가 전혀 없을 때만 한국어 표기로
+    본다. 애니 주제가의 한국어 더빙판(예: 코요태 '우리의꿈(원피스 OP)')은
     실제로 한국곡이라 걸러도 무방하다.
+
+    일본 가수를 한글로 등록한 곡이 함께 걸릴 수 있어 실측했다 —
+    일본 가수 8팀을 한글 발음으로 조회한 결과 **0건**이었다 (23번 표).
+    생기더라도 설정에서 '한국곡 포함'을 켜면 다시 보인다.
     """
-    text = f"{item.get('title', '')} {item.get('singer', '')}"
-    return bool(_KOREAN.search(text)) and not _JAPANESE.search(text)
+    return _is_korean_text(item.get("title")) or _is_korean_text(item.get("singer"))
 
 
 def _singer_matches(keyword, item):
@@ -92,6 +105,10 @@ def _filter_singers(keyword, items):
 
 # 역조회는 곡마다 TJ를 한 번씩 부른다. 폭주를 막기 위해 상한을 둔다.
 LYRICS_CROSS_LOOKUP_LIMIT = 15
+# 가수 역조회에 쓸 이름 개수.
+# 2로 늘려 봤더니 두 번째 이름이 피처링 아티스트라 그 사람 전곡이 딸려 왔고,
+# `미쿠` 검색이 17초까지 늘어졌다. 가장 많이 나온 이름 하나면 충분하다.
+SINGER_CROSS_LOOKUP_LIMIT = 1
 # 순차로 돌면 40초가 걸린다. 남의 서버이므로 동시 요청은 적당히 제한한다.
 LYRICS_LOOKUP_WORKERS = 6
 
@@ -301,6 +318,125 @@ def _fetch_lyrics(keyword, brand):
     return rows
 
 
+def _search_by_alias(brand, keyword, search_type):
+    """전에 배워 둔 원표기로 자체 DB를 뒤진다. 못 쓰면 빈 리스트.
+
+    `미쿠`처럼 발음으로 검색하면 DB가 답하지 못한다 — DB에는 `初音ミク`로
+    들어 있기 때문이다. 한 번 공식에 물어서 알아낸 연결(38번의 역조회)을
+    `singer_alias`에 적어 두고, 그다음부터는 이 길로 답한다.
+
+    **공식 호출이 사라지는 것이 요점이다.** 결과를 완전하다고 표시하므로
+    클라이언트가 2차 요청도 보내지 않는다.
+    """
+    if search_type != "singer" or _JAPANESE.search(keyword):
+        return []
+
+    canonical = alias.find(keyword)
+    if not canonical:
+        return []
+
+    rows = song.search(canonical, "singer", _target_brands(brand))
+    if not rows:
+        return []
+
+    logger.info("별칭으로 답합니다: %r → %r (%d건)", keyword, canonical, len(rows))
+    return rows
+
+
+def _fetch_official_all(brand, keyword, search_type):
+    """공식 조회 + 가수 역조회. 공식을 훑는 경로는 모두 이걸 쓴다.
+
+    역조회를 여기 둔 이유 — DB 장애로 공식만 보는 경로에서도 같은 보정이
+    필요하다. 공식을 부르는 자리는 세 곳(DB 끔 / DB 장애 / 2차 보강)인데
+    모두 여기를 지난다.
+    """
+    rows = _fetch_all_brands(brand, keyword, search_type)
+    if search_type == "singer":
+        rows = _cross_lookup_singers(rows, _target_brands(brand), keyword)
+    return rows
+
+
+def _cross_lookup_singers(rows, targets, keyword):
+    """한쪽 브랜드가 0건일 때, 다른 쪽이 찾아 준 가수명으로 다시 물어본다.
+
+    **왜 필요한가** — 발음 검색의 커버리지가 브랜드마다 다르다 (11번).
+    `미쿠`로 조회하면 금영은 115건을 주는데 TJ는 0건이다. TJ는 이름 전체를
+    쳐야(`하츠네미쿠`) 걸리기 때문이다. 그런데 금영이 돌려준 행에는
+    **일본어 원표기(`初音ミク`)가 들어 있고**, 그걸로 TJ에 물으면 122건이 나온다.
+
+    가사 검색(`_fetch_lyrics`)이 쓰는 역조회와 같은 수법이다. 다만 그쪽은
+    곡마다 한 번씩 부르고, 여기는 **가수명 한두 개로 한 번씩만** 부른다.
+
+    비어 있는 브랜드가 없거나 쓸 만한 이름이 없으면 아무것도 하지 않는다.
+    실패해도 원래 결과를 그대로 돌려준다.
+
+    **검색어에 일본어가 있으면 하지 않는다.** 그때 0건은 표기 문제가 아니라
+    정말 그 브랜드에 없는 것이다. 굳이 다른 이름으로 다시 물으면 시간만
+    쓰고 엉뚱한 곡을 끌어온다.
+    """
+    if _JAPANESE.search(keyword):
+        return rows
+    found = {t: [r for r in rows if r["brand"] == t] for t in targets}
+    empty = [t for t, got in found.items() if not got]
+    filled = [t for t, got in found.items() if got]
+
+    if not empty or not filled:
+        return rows
+
+    # 이미 검색어와 같은 표기로 물어봤다. 다른 표기를 찾아야 의미가 있다.
+    asked = normalize_text(keyword)
+    names = []
+    for target in filled:
+        for row in found[target]:
+            for name in split_singers(row.get("singer")):
+                if normalize_text(name) != asked and name not in names:
+                    names.append(name)
+
+    if not names:
+        return rows
+
+    # 가장 많이 나온 이름부터 쓴다. 검색 결과의 주인이 그 가수일 가능성이 높다.
+    counts = Counter(
+        normalize_text(name)
+        for target in filled
+        for row in found[target]
+        for name in split_singers(row.get("singer"))
+    )
+    names.sort(key=lambda n: counts[normalize_text(n)], reverse=True)
+    names = names[:SINGER_CROSS_LOOKUP_LIMIT]
+
+    app = current_app._get_current_object()
+
+    def lookup(job):
+        brand, name = job
+        with app.app_context():
+            try:
+                return _fetch_brand(brand, name, "singer")
+            except Exception as exc:
+                logger.info("가수 역조회 실패 (%s / %r): %s", brand, name, exc)
+                return []
+
+    jobs = [(brand, name) for brand in empty for name in names]
+    logger.info("%s가 0건이라 %r로 역조회합니다", ", ".join(empty), names)
+
+    extra = []
+    with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+        for got in pool.map(lookup, jobs):
+            extra.extend(got)
+
+    gained = [r for r in extra if r["brand"] in empty]
+
+    # 이 길이 통했다면 적어 둔다. 다음부터는 공식을 부르지 않는다.
+    # 저장에 실패해도 검색은 그대로 진행한다.
+    if gained:
+        try:
+            alias.remember(keyword, names[0])
+        except Exception as exc:
+            logger.info("별칭 저장 실패, 결과에는 영향 없습니다: %s", exc)
+
+    return _merge(rows, gained)
+
+
 def _fetch_brand(brand, keyword, search_type):
     """브랜드 하나의 결과를 가져온다. 소스 선택과 폴백을 담당한다.
 
@@ -351,15 +487,20 @@ def _fetch_catalog(brand, keyword, search_type, full=False):
     응답 시간을 아낀다.
     """
     if not current_app.config["DB_SEARCH_ENABLED"]:
-        return _fetch_all_brands(brand, keyword, search_type), True
+        return _fetch_official_all(brand, keyword, search_type), True
 
     rows = song.search(keyword, search_type, _target_brands(brand))
 
     if rows is None:
         # DB 장애. 예전처럼 외부만 본다.
-        return _fetch_all_brands(brand, keyword, search_type), True
+        return _fetch_official_all(brand, keyword, search_type), True
 
     if not full:
+        # 전에 배워 둔 발음이면 공식을 부르지 않고 DB로 답한다.
+        learned = _search_by_alias(brand, keyword, search_type)
+        if learned:
+            return _merge(rows, learned), True
+
         # 공식을 더 찔러볼 이유가 있는지 판단한다.
         # 매번 찌르면 DB를 만든 의미가 없고, 아예 안 찌르면 한글 발음
         # 검색이 안 된다.
@@ -371,7 +512,7 @@ def _fetch_catalog(brand, keyword, search_type, full=False):
 
     logger.info("DB %d건, 공식으로 보강합니다: %r", len(rows), keyword)
     try:
-        return _merge(rows, _fetch_all_brands(brand, keyword, search_type)), True
+        return _merge(rows, _fetch_official_all(brand, keyword, search_type)), True
     except Exception as exc:
         # 공식이 죽어도 DB 결과는 살린다
         logger.warning("공식 보강 실패, DB 결과만 씁니다: %s", exc)
@@ -431,6 +572,9 @@ def _build_groups(items):
             group = {
                 # 대표 표기는 먼저 등장한 항목(= 최신 발매)을 쓴다.
                 "title": item["title"],
+                # 번역 제목은 있는 쪽을 쓴다. 같은 곡이라도 자체 DB에서 온
+                # 항목에만 붙어 있어서, 대표 항목이 공식 결과면 비어 있다.
+                "title_ko": item.get("title_ko", ""),
                 "singer": item["singer"],
                 "match_key": item["match_key"],
                 "brands": {},
@@ -438,6 +582,10 @@ def _build_groups(items):
             groups[item["match_key"]] = group
 
         group["brands"].setdefault(item["brand"], []).append(item["no"])
+
+        # 뒤에 온 항목이 번역을 갖고 있으면 채운다 (앞 항목이 공식 결과였을 때)
+        if not group["title_ko"] and item.get("title_ko"):
+            group["title_ko"] = item["title_ko"]
 
     ordered = list(groups.values())
     for group in ordered:

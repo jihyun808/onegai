@@ -242,3 +242,44 @@ class TestRateLimit:
             codes.append(res.status_code)
 
         assert 429 not in codes
+
+
+class TestAccessLog:
+    """개인정보에 접근하는 요청은 접속기록에 남긴다 (안전성 확보조치 기준 제8조)."""
+
+    @pytest.fixture
+    def logged(self, monkeypatch):
+        from app.models import access_log
+
+        rows = []
+        monkeypatch.setattr(
+            access_log, "record",
+            lambda user_id, action, ip, status: rows.append((user_id, action, status)),
+        )
+        return rows
+
+    def test_records_auth_request(self, client, logged):
+        client.post("/api/auth/login", json={"username": "없는사람", "password": "x"})
+
+        assert any(a == "POST /api/auth/login" for _, a, _ in logged)
+
+    def test_records_favorites_request(self, client, logged):
+        client.get("/api/favorites")
+
+        assert any(a == "GET /api/favorites" for _, a, _ in logged)
+
+    def test_search_is_not_recorded(self, client, logged):
+        """검색은 개인정보가 아니다. 남기면 취향 기록이 쌓인다."""
+        client.get("/api/search?q=ヨルシカ")
+
+        assert logged == []
+
+    def test_failure_to_log_does_not_break_request(self, client, monkeypatch):
+        """기록에 실패했다고 이용자의 요청이 실패하면 안 된다."""
+        from app.utils import db
+
+        def boom(*a, **k):
+            raise RuntimeError("DB 다운")
+
+        monkeypatch.setattr(db, "execute_many", boom)
+        assert client.get("/api/favorites").status_code in (200, 401)

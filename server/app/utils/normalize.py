@@ -137,6 +137,8 @@ def normalize_entry(entry):
         "composer": entry.get("composer") or "",
         "lyricist": entry.get("lyricist") or "",
         "release": entry.get("release") or "",
+        # 번역 제목. 자체 DB에서 온 항목에만 있고 공식·manana에는 없다.
+        "title_ko": entry.get("title_ko") or "",
         "match_key": make_match_key(title, singer),
     }
 

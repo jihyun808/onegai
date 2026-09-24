@@ -25,6 +25,8 @@ class Config:
     REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
     REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
     REDIS_DB = int(os.getenv("REDIS_DB", 0))
+    # 로컬 Redis는 비밀번호가 없다. Railway 같은 관리형은 필수다.
+    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD") or None
     # manana API가 하루 1회 갱신되므로 기본 24시간
     CACHE_TTL = int(os.getenv("CACHE_TTL", 86400))
 

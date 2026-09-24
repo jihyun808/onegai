@@ -7,6 +7,7 @@ export interface Song {
   brand: Brand
   no: string
   title: string
+  title_ko?: string
   singer: string
   composer: string
   lyricist: string
@@ -21,6 +22,8 @@ export interface Song {
  */
 export interface SongGroup {
   title: string
+  /** 한국어로 옮긴 제목. 자체 DB에 번역이 쌓인 곡만 채워진다 */
+  title_ko?: string
   singer: string
   match_key: string
   /** 브랜드별 곡번호. 같은 브랜드에 버전이 여러 개면 번호도 여러 개다. */

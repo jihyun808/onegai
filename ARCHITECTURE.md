@@ -78,7 +78,7 @@ karaokedayo/
         ├── routes/          health.py, search.py, extras.py
         ├── services/        manana.py, kysing.py(금영공식), tjmedia.py(TJ공식),
         │                    search_service.py, health_service.py,
-        │                    translate.py(DeepL), preview.py(iTunes), lyrics.py(Musixmatch)
+        │                    translate.py(DeepL), preview.py(iTunes), lyrics.py(금영)
         ├── models/          song.py — 카탈로그 조회/적재
         └── utils/           cache.py (Redis), normalize.py (정규화)
 ```
@@ -170,7 +170,7 @@ TJ 결과가 통째로 목록 아래로 밀린다.
 | --- | --- | --- |
 | 번역 | DeepL | `DEEPL_API_KEY` |
 | 미리듣기 | **iTunes Search** (Apple Music API 아님 — 그쪽은 유료 JWT 필요) | 불필요 |
-| 가사 | Musixmatch (무료는 30% 발췌) | `MUSIXMATCH_API_KEY` |
+| 가사 | **금영 공식** (검색 결과 HTML에 전문 + 한글 발음이 딸려 온다) | 불필요 |
 
 `/api/health`의 `features`로 클라이언트가 UI를 미리 감출 수 있다.
 

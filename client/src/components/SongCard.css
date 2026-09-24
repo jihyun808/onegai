@@ -20,6 +20,14 @@
   overflow-wrap: anywhere;
 }
 
+.song__title-ko {
+  margin: 2px 0 0;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .song__singer {
   margin: 3px 0 0;
   color: var(--ink-soft);

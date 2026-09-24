@@ -84,3 +84,90 @@
   border-color: var(--line);
   color: var(--ink);
 }
+
+/*
+  인기곡 상자 — 카드 다섯 장 높이에서 자르고 안에서만 스크롤한다.
+
+  높이는 카드 한 장(제목 1줄 기준 약 74px)과 사이 여백 11px로 잡았다.
+  제목이 두 줄인 카드가 섞이면 다섯 장이 정확히 안 떨어지는데, 오히려
+  아래가 살짝 잘려 보이는 편이 **더 있다는 신호**가 되어 그대로 둔다.
+
+  overscroll-behavior: contain — 상자 끝까지 스크롤해도 페이지가 따라
+  움직이지 않는다. 이게 없으면 목록을 넘기다 홈 전체가 밀린다.
+*/
+.home__popular-box {
+  max-height: calc(74px * 5 + 11px * 4);
+  padding: 2px 2px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* 스크롤 영역임을 알 수 있게 안쪽으로 살짝 들여 둔다 */
+  border-radius: 14px;
+}
+
+/* 인기곡 목록 — 카드는 검색 결과와 같은 것을 쓰고 순위만 앞에 붙인다 */
+.home__heading--popular {
+  margin-top: 24px;
+}
+
+.home__list--ranked {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home__ranked-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.home__ranked-item + .home__ranked-item {
+  margin-top: 11px;
+}
+
+/* 카드가 남는 폭을 다 쓰게 한다. 없으면 순위 칸만큼 카드가 찌그러진다 */
+.home__ranked-item > :last-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.home__rank {
+  flex: none;
+  width: 22px;
+  color: var(--ink-soft);
+  font-family: var(--font-hand);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* 많이 찾는 검색어 — 손그림 UI에 맞춘 알약 뱃지 */
+.home__heading--hot {
+  margin-top: 22px;
+}
+
+.home__hot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0 0 4px;
+  padding: 0 2px;
+  list-style: none;
+}
+
+.home__hot-badge {
+  padding: 7px 13px;
+  border: 1.5px solid var(--line-thin);
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.home__hot-badge:hover {
+  border-color: var(--line);
+  color: var(--ink);
+}

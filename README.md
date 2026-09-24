@@ -234,7 +234,7 @@ DELETE /api/favorites/<brand>/<no>
 | --- | --- | --- | --- |
 | `GET /api/translate?text=&target=KO` | DeepL | `DEEPL_API_KEY` | 30일 |
 | `GET /api/preview?title=&singer=` | iTunes Search | **불필요** | 7일 |
-| `GET /api/lyrics?title=&singer=` | Musixmatch | `MUSIXMATCH_API_KEY` | 30일 |
+| `GET /api/lyrics?title=&singer=` | 금영 공식 | **불필요** | 30일 (없으면 1일) |
 
 ```json
 { "available": true, "preview_url": "https://…m4a",
@@ -248,9 +248,27 @@ DELETE /api/favorites/<brand>/<no>
   iTunes Search는 키 없이 같은 30초 프리뷰 URL과 앨범아트를 준다.
 - iTunes는 검색이 느슨해 엉뚱한 곡이 섞이므로, 우리 정규화 규칙(`match_key`와
   같은 방식)으로 제목·가수를 대조해 거른다.
-- Musixmatch 무료 플랜은 **가사 앞부분 30% 발췌**만 준다 (`partial: true`).
-  그리고 오류일 때도 HTTP 200을 주므로 본문의 `status_code`를 봐야 한다.
+- **가사는 금영 검색 결과 HTML에 통째로 들어 있다.** 별도 요청도 키도 없고
+  한글 발음까지 붙어 온다. `lines: [{ko, ja}, ...]` 형태로 내보낸다.
+  ⚠️ **권리 확인은 진행 중이다** (DECISIONS.md 37번). `KYSING_ENABLED=false`로
+  끄면 가사만 꺼지고 검색 링크는 그대로 나간다.
+- 금영에 없는 곡(태진 전용이 41%)은 `available: false`와 함께 `search_url`을 준다.
+  **`search_url`은 성공하든 실패하든 항상 채워지므로** 화면은 조건 없이 띄우면 된다.
+- 조회에 5초쯤 걸린다(금영 페이지당 2초). 카드를 눌렀을 때만 부르고 30일 캐싱한다.
 - DeepL 무료 키는 `:fx`로 끝난다. 키를 보고 엔드포인트를 자동으로 고른다.
+
+### 발음 검색 별칭
+
+`미쿠`처럼 발음으로 검색하면 자체 DB가 답하지 못한다 (DB에는 `初音ミク`로
+저장돼 있고, 발음은 공식 검색 인덱스에만 있어 크롤링할 수 없다).
+공식에 한 번 물어서 알아낸 연결을 `singer_alias`에 적어 두고 그다음부터는
+DB로 답한다 — **16.6초 → 0.076초, 공식 호출 0회.** DECISIONS.md 39번.
+
+```bash
+# 스키마 적용 (한 번만)
+docker compose exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" karaokedayo \
+  < server/db/004_singer_alias.sql
+```
 
 ### 데이터 소스
 
@@ -288,9 +306,89 @@ TJ 공식에는 발매일이 없어서 manana로 채워 넣는다. 안 채우면
 ## 테스트
 
 ```bash
+# 서버 168개
 cd server
 ./venv/bin/pip install -r requirements-dev.txt
 ./venv/bin/python -m pytest
+
+# 클라이언트 45개
+cd client
+npm test
 ```
 
-네트워크를 타지 않는다 (외부 API·DB·Redis 모두 대체). 161개.
+**둘 다 네트워크를 타지 않는다** (외부 API·DB·Redis·오디오 모두 대체).
+서버는 pytest, 클라이언트는 vitest + Testing Library를 쓴다.
+
+## 배포
+
+이미지의 기본 실행은 gunicorn이다.
+
+```bash
+gunicorn -c gunicorn.conf.py run:app
+```
+
+스레드 워커(gthread)를 쓴다 — 이 서버는 계산이 아니라 **남의 서버를 기다리는**
+시간이 대부분이라, 기본 sync 워커면 느린 스크래핑 하나가 워커를 통째로 막는다.
+조절용 환경변수: `WEB_WORKERS`, `WEB_THREADS`, `WEB_TIMEOUT`, `FORWARDED_ALLOW_IPS`.
+
+개발은 `docker compose`가 `python run.py`(리로더)로 덮어쓰므로 그대로 쓰면 된다.
+자세한 내용은 [DECISIONS.md](DECISIONS.md) 34번.
+
+### Railway
+
+서비스 4개를 한 프로젝트에 둔다.
+
+| 서비스 | 만드는 법 | 설정 |
+| --- | --- | --- |
+| MySQL | New → Database → MySQL | 그대로 |
+| Redis | New → Database → Redis | 그대로 |
+| server | New → GitHub Repo | Root Directory `/server`, Config file `/server/railway.toml` |
+| crawl | 같은 레포로 하나 더 | Root Directory `/server`, Config file `/server/railway.cron.toml` |
+
+server와 crawl에 넣을 환경변수 (`${{...}}`는 Railway가 다른 서비스 값으로 채운다):
+
+```
+FLASK_ENV=production
+SECRET_KEY=<python -c "import secrets; print(secrets.token_hex(32))" 결과>
+MYSQL_HOST=${{MySQL.MYSQLHOST}}
+MYSQL_PORT=${{MySQL.MYSQLPORT}}
+MYSQL_USER=${{MySQL.MYSQLUSER}}
+MYSQL_PASSWORD=${{MySQL.MYSQLPASSWORD}}
+MYSQL_DATABASE=${{MySQL.MYSQLDATABASE}}
+REDIS_HOST=${{Redis.REDISHOST}}
+REDIS_PORT=${{Redis.REDISPORT}}
+REDIS_PASSWORD=${{Redis.REDISPASSWORD}}
+FORWARDED_ALLOW_IPS=*
+CORS_ORIGINS=<프론트 도메인. 없으면 비워 둔다>
+DEEPL_API_KEY=<선택>
+```
+
+- `FLASK_ENV=production`인데 `SECRET_KEY`가 기본값이면 서버가 뜨지 않는다 (일부러 막았다).
+- 스키마는 배포마다 `flask --app run init-db`가 자동으로 맞춘다. 적용한 파일은
+  `schema_migrations`에 적어 두므로 새 SQL 파일만 돌고, ALTER가 두 번 돌지 않는다.
+  로컬 도커 DB처럼 이미 스키마가 있는 DB는 한 번 `init-db --mark-applied`로 기록만 남긴다.
+- 서버 서비스의 Networking에서 **Generate Domain**을 눌러야 공개 주소가 생긴다.
+- 최초 백필은 한 번만 직접 돌린다 (1~2시간):
+
+  ```bash
+  railway ssh --service server
+  nohup flask --app run crawl-backfill > backfill.log 2>&1 &
+  ```
+
+  도중에 재배포되면 끊기지만, 받은 달은 건너뛰므로 다시 돌리면 이어서 받는다.
+- 매일 크롤링은 crawl 서비스가 한국 시간 04:00에 돈다 (`railway.cron.toml`).
+
+#### 자동 배포 (CI/CD)
+
+별도 배포 워크플로 없이 Railway의 GitHub 연동을 쓴다. 토큰을 GitHub에 둘 필요가 없다.
+
+```
+push → GitHub Actions CI (pytest · vitest) → 통과하면 → Railway 빌드 → init-db → 교체
+```
+
+server·crawl 서비스 Settings에서 한 번만 맞춘다:
+
+- **Branch**: `main` — dev에 푸시해서는 배포되지 않는다
+- **Wait for CI**: 켠다 — CI가 실패한 커밋은 배포하지 않는다
+- 감시 경로는 `railway.toml`의 `watchPatterns`(`/server/**`)라 프론트만 바꾼 커밋은 재배포하지 않는다
+
