@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "오네가이",
+    "slug": "onegai",
+    "scheme": "onegai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#fcf6e5",
+    "ios": {
+      "bundleIdentifier": "com.eeez.onegai",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "ko"
+      }
+    },
+    "android": {
+      "package": "com.eeez.onegai",
+      "adaptiveIcon": {
+        "backgroundColor": "#fcf6e5",
+        "foregroundImage": "./assets/icon.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-audio",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#fcf6e5",
+          "ios": {
+            "enableFullScreenImage_legacy": true,
+            "resizeMode": "cover",
+            "image": "./assets/splash-icon.png"
+          }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "프로필 사진을 고르려면 사진 보관함에 접근해야 해요.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      "expo-asset"
+    ]
+  }
+}

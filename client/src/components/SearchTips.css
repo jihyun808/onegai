@@ -1,0 +1,56 @@
+.tips {
+  padding: 28px 20px 8px;
+}
+
+.tips__title {
+  margin: 0 0 14px;
+  font-family: var(--font-hand);
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.tips__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.tips__list li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* 손그림 UI에 맞춘 동그란 번호 */
+.tips__no {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+
+/* 예시는 한 줄 아래로 내려 규칙과 구분한다 */
+.tips__eg {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.tips__foot {
+  margin: 20px 0 0;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  text-align: center;
+}

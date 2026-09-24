@@ -1,0 +1,53 @@
+.logo {
+  position: relative;
+  display: inline-block;
+}
+
+.logo__text {
+  margin: 0;
+  font-family: var(--font-logo);
+  font-size: 26px;
+  font-weight: 400; /* 잘난체는 단일 굵기라 bold를 주면 브라우저가 억지로 굵힌다 */
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.logo__ink {
+  color: var(--ink);
+}
+
+.logo__accent {
+  color: var(--accent);
+}
+
+/* 음표는 '오케' 위쪽에 걸치게 둔다 */
+.logo__notes {
+  position: absolute;
+  left: 48%;
+  bottom: 78%;
+  line-height: 0;
+  pointer-events: none;
+}
+
+.logo__note path {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.logo__note ellipse {
+  fill: currentcolor;
+}
+
+.logo__note--1 {
+  color: var(--kumyoung);
+}
+
+.logo__note--2 {
+  color: var(--tj);
+}
+
+.logo__note--3 {
+  color: var(--accent);
+}

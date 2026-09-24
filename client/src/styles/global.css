@@ -1,0 +1,136 @@
+/*
+ * 오네가이 기본 스타일.
+ * 아이보리 배경 + 손그림 느낌. 모바일(375px~) 우선.
+ * 디자이너가 다듬을 예정이므로 값은 전부 변수로 빼둔다.
+ */
+
+:root {
+  /* 아이보리 계열 */
+  --ivory: #f7f3e8;
+  --ivory-deep: #efe8d6;
+  --paper: #fffdf6;
+
+  /* 잉크 — 연필/펜 느낌의 따뜻한 먹색 */
+  --ink: #2f2a24;
+  --ink-soft: #7d7264;
+  --ink-faint: #aca08c;
+
+  /* 손그림 선 */
+  --line: #2f2a24;
+  --line-thin: #cdc3ad;
+
+  /* 브랜드 */
+  --tj: #2f6fd0;
+  --kumyoung: #d2453f;
+
+  --accent: #e0863a;
+
+  --radius: 12px;
+  --radius-pill: 999px;
+
+  /* 본문은 가독성 우선, 제목/숫자는 손글씨 */
+  --font: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Hiragino Sans', system-ui,
+    sans-serif;
+  --font-hand: 'Gaegu', var(--font);
+  /* 로고 전용 — 여기어때 잘난체 (상업적 사용 무료) */
+  --font-logo: 'Jalnan', var(--font-hand);
+
+  /*
+   * 하단 네비가 실제로 차지하는 높이 (폭 375 기준 SVG 90px).
+   * 색이 칠해진 바는 54px뿐이지만, 콘텐츠가 언덕 아래로 들어가면
+   * 목록 끝의 스피너나 마지막 카드가 가려진다. 전체 높이로 잡는다.
+   */
+  --nav-height: 90px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* 모바일에서 가로 스크롤이 절대 생기지 않게 */
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  background: var(--ivory);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  /* iOS에서 입력창 포커스 시 자동 확대 방지 */
+  -webkit-text-size-adjust: 100%;
+}
+
+button,
+input {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/*
+ * 손그림 테두리.
+ *
+ * 테두리만 그리는 ::before 에 SVG 왜곡 필터를 걸어 선을 구불거리게 만든다.
+ * 카드 전체에 걸면 글자까지 일그러져 읽기 힘들어지므로, 반드시 선에만 적용한다.
+ * 불규칙한 border-radius를 함께 써서 "대충 그린" 느낌을 낸다.
+ */
+.sketch {
+  position: relative;
+  /* 배경은 ::before가 칠한다. 여기에 칠하면 직사각형 모서리가
+     구불구불한 테두리 밖으로 삐져나온다. */
+  background: transparent;
+}
+
+.sketch::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border: 2px solid var(--line);
+  border-radius: 140px 18px 130px 20px / 20px 120px 22px 130px;
+  /* 면도 함께 칠해 배경이 손그림 선을 따라가게 한다 */
+  background: var(--paper);
+  filter: url('#wobble');
+  pointer-events: none;
+}
+
+/* 내용은 배경 위로 */
+.sketch > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 카드마다 조금씩 다르게 — 같은 도형이 반복되면 손그림 느낌이 죽는다 */
+.sketch:nth-child(3n + 2)::before {
+  border-radius: 20px 130px 22px 140px / 130px 20px 120px 24px;
+}
+
+.sketch:nth-child(3n)::before {
+  border-radius: 120px 24px 140px 18px / 24px 140px 18px 120px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

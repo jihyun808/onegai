@@ -1,0 +1,823 @@
+<!doctype html>
+<!--
+  오네가이 개인정보 처리방침
+  「개인정보 처리방침 작성지침」(개인정보보호위원회, 2026.4.) 기재사항 24개 기준.
+
+  ─────────────────────────────────────────────────────────
+  공개 전에 반드시 채워야 하는 곳: 아래 <mark class="todo"> 로 표시해 두었다.
+  브라우저에서 노란색으로 보이므로 빠뜨릴 수 없다.
+    1. 개인정보처리자명 (운영자 이름 또는 팀명)
+    2. 개인정보 보호책임자 성명
+    3. 연락처 이메일
+    4. 시행일
+    5. 호스팅 업체 (위탁·국외이전 판단에 필요)
+    6. 접속기록 보관 기간
+  ─────────────────────────────────────────────────────────
+
+  게시 위치: 지침 Part Ⅱ-4에 따라 로그인 여부와 관계없이 접근 가능해야 하고,
+  첫 화면에서 3단계 이내로 찾을 수 있어야 한다.
+-->
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>오네가이 개인정보 처리방침</title>
+    <meta name="description" content="오네가이 개인정보 처리방침" />
+    <style>
+      :root {
+        --paper: #fffdf6;
+        --ivory: #f7f3e8;
+        --ink: #2f2a24;
+        --ink-soft: #6b6154;
+        --line: #ded5c0;
+        --accent: #e0863a;
+        --todo: #ffe9a8;
+        --todo-ink: #6b4e00;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #1b1916;
+          --ivory: #232019;
+          --ink: #ece6d9;
+          --ink-soft: #a99e8c;
+          --line: #3d3730;
+          --accent: #e6a260;
+          --todo: #5c4a12;
+          --todo-ink: #ffe9a8;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 28px 20px 80px;
+        background: var(--paper);
+        color: var(--ink);
+        font-family:
+          "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.75;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+      }
+
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+
+      /* 지침 표준지침 제20조: '개인정보 처리방침'이라는 명칭을 다른 고지사항과
+     구분되도록 글자 크기·색상으로 강조한다 */
+      h1 {
+        margin: 0 0 6px;
+        font-size: 26px;
+        line-height: 1.3;
+        color: var(--accent);
+      }
+
+      .service {
+        margin: 0 0 24px;
+        color: var(--ink-soft);
+        font-size: 13px;
+      }
+
+      .intro {
+        margin: 0 0 28px;
+        padding: 16px 18px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--ivory);
+      }
+
+      nav {
+        margin: 0 0 36px;
+        padding: 16px 18px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      nav h2 {
+        margin: 0 0 10px;
+        font-size: 15px;
+      }
+      nav ol {
+        margin: 0;
+        padding-left: 1.2em;
+        columns: 2;
+        column-gap: 24px;
+      }
+      /* 좁은 화면에서는 두 단으로 나누면 항목마다 줄바꿈이 나서 읽기 힘들다 */
+      @media (max-width: 560px) {
+        nav ol {
+          columns: 1;
+        }
+      }
+      nav li {
+        margin-bottom: 4px;
+        break-inside: avoid;
+      }
+      nav a {
+        color: var(--ink);
+        text-decoration: none;
+        border-bottom: 1px solid var(--line);
+      }
+      nav a:hover {
+        color: var(--accent);
+      }
+
+      section {
+        margin-bottom: 34px;
+        scroll-margin-top: 16px;
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--line);
+        font-size: 18px;
+        line-height: 1.4;
+      }
+
+      h3 {
+        margin: 20px 0 8px;
+        font-size: 15px;
+      }
+
+      p,
+      li {
+        margin: 0 0 10px;
+      }
+      ol,
+      ul {
+        padding-left: 1.3em;
+      }
+
+      /* 표는 좁은 화면에서 본문을 밀어내지 않도록 자기 안에서만 스크롤한다 */
+      .scroll {
+        overflow-x: auto;
+        margin: 12px 0 16px;
+      }
+
+      table {
+        width: 100%;
+        min-width: 460px;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th,
+      td {
+        padding: 9px 11px;
+        border: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: var(--ivory);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .none {
+        padding: 12px 16px;
+        border-left: 3px solid var(--line);
+        background: var(--ivory);
+        color: var(--ink-soft);
+      }
+
+      mark.todo {
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: var(--todo);
+        color: var(--todo-ink);
+        font-weight: 700;
+      }
+
+      footer {
+        margin-top: 48px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        color: var(--ink-soft);
+        font-size: 13px;
+      }
+
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>개인정보 처리방침</h1>
+      <p class="service">오네가이(onegai) — 일본 노래방 번호 검색 서비스</p>
+
+      <p class="intro">
+        <mark class="todo">[운영자명]</mark>(이하 “운영자”)은(는) 오네가이
+        서비스를 제공하면서 정보주체의 자유와 권리 보호를 위해 「개인정보
+        보호법」 및 관계 법령이 정한 바를 준수하여, 적법하게 개인정보를 처리하고
+        안전하게 관리하고 있습니다. 이에 「개인정보 보호법」 제30조에 따라
+        정보주체에게 개인정보의 처리와 보호에 관한 절차 및 기준을 안내하고, 이와
+        관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이
+        개인정보 처리방침을 수립·공개합니다.
+      </p>
+
+      <nav>
+        <h2>목차</h2>
+        <ol>
+          <li><a href="#purpose">개인정보의 처리 목적</a></li>
+          <li><a href="#items">처리하는 개인정보의 항목</a></li>
+          <li><a href="#children">14세 미만 아동의 개인정보 처리</a></li>
+          <li><a href="#period">개인정보의 처리 및 보유 기간</a></li>
+          <li><a href="#destroy">개인정보의 파기 절차 및 방법</a></li>
+          <li><a href="#third-party">개인정보의 제3자 제공</a></li>
+          <li><a href="#consign">개인정보 처리업무의 위탁</a></li>
+          <li><a href="#oversea">개인정보의 국외 이전</a></li>
+          <li><a href="#safety">개인정보의 안전성 확보조치</a></li>
+          <li><a href="#not-processed">처리하지 않는 개인정보</a></li>
+          <li>
+            <a href="#cookie">개인정보 자동 수집 장치의 설치·운영 및 거부</a>
+          </li>
+          <li>
+            <a href="#rights">정보주체와 법정대리인의 권리·의무 및 행사방법</a>
+          </li>
+          <li><a href="#officer">개인정보 보호책임자</a></li>
+          <li><a href="#remedy">정보주체의 권익침해에 대한 구제방법</a></li>
+          <li><a href="#change">개인정보 처리방침의 변경</a></li>
+        </ol>
+      </nav>
+
+      <section id="purpose">
+        <h2>1. 개인정보의 처리 목적</h2>
+        <p>
+          운영자는 다음의 목적을 위하여 개인정보를 처리합니다. 처리하고 있는
+          개인정보는 다음의 목적 외의 용도로는 이용되지 않으며, 이용 목적이
+          변경되는 경우에는 「개인정보 보호법」 제18조에 따라 별도의 동의를 받는
+          등 필요한 조치를 이행할 예정입니다.
+        </p>
+        <ol>
+          <li>
+            <strong>회원 가입 및 관리</strong> — 회원 가입 의사 확인, 회원제
+            서비스 제공에 따른 본인 식별·인증, 회원자격 유지·관리, 서비스
+            부정이용 방지, 각종 고지·통지, 고충처리를 목적으로 개인정보를
+            처리합니다.
+          </li>
+          <li>
+            <strong>서비스 제공</strong> — 이용자가 저장한 즐겨찾기 곡 목록을
+            계정에 보관하고 기기가 바뀌어도 이어서 이용할 수 있도록 하기 위하여
+            개인정보를 처리합니다.
+          </li>
+          <li>
+            <strong>서비스 안정성 확보</strong> — 비정상적인 대량 요청 차단,
+            로그인 시도 횟수 제한 등 서비스의 안정적 운영과 부정 이용 방지를
+            목적으로 접속 정보를 처리합니다.
+          </li>
+        </ol>
+        <p>
+          운영자는 서비스 제공에 필요한 최소한의 범위에서 개인정보를
+          수집·이용합니다. 노래 검색은
+          <strong>회원 가입 없이도 이용할 수 있습니다.</strong>
+        </p>
+      </section>
+
+      <section id="items">
+        <h2>2. 처리하는 개인정보의 항목</h2>
+
+        <h3>가. 회원 가입 시 (정보주체의 동의)</h3>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>구분</th>
+                <th>항목</th>
+                <th>비고</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>필수</td>
+                <td>아이디, 비밀번호</td>
+                <td>
+                  비밀번호는 복호화할 수 없는 방식(해시)으로 저장되며 운영자도
+                  원문을 알 수 없습니다.
+                </td>
+              </tr>
+              <tr>
+                <td>선택</td>
+                <td>프로필 이미지</td>
+                <td>
+                  이용자가 직접 등록하는 경우에만 저장됩니다. 등록하지 않아도
+                  서비스 이용에 제한이 없습니다.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          <strong
+            >운영자는 이름, 생년월일, 연락처, 이메일 주소를 수집하지
+            않습니다.</strong
+          >
+          가입에는 아이디와 비밀번호만 필요합니다.
+        </p>
+
+        <h3>나. 서비스 이용 과정에서 생성·수집되는 정보</h3>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>항목</th>
+                <th>수집 목적</th>
+                <th>수집 방법</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  즐겨찾기한 곡 정보(노래방 브랜드, 곡번호, 곡명, 가수명, 저장
+                  일시)
+                </td>
+                <td>계정에 즐겨찾기 보관</td>
+                <td>이용자가 즐겨찾기를 저장할 때</td>
+              </tr>
+              <tr>
+                <td>접속 IP 주소</td>
+                <td>비정상적인 대량 요청 차단, 로그인 시도 횟수 제한</td>
+                <td>서비스 이용 시 자동 생성</td>
+              </tr>
+              <tr>
+                <td>접속 일시, 브라우저 종류(User-Agent), 요청 경로</td>
+                <td>서비스 운영 및 장애 대응, 접속기록 보관</td>
+                <td>서버 접속기록으로 자동 생성</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          <strong>로그인하지 않고 이용하는 경우</strong>, 즐겨찾기는 서버로
+          전송되지 않고 이용자의 기기(브라우저 저장소)에만 저장됩니다. 회원 가입
+          시점에 한 번, 기기에 저장되어 있던 즐겨찾기를 계정으로 옮깁니다.
+        </p>
+      </section>
+
+      <section id="children">
+        <h2>3. 14세 미만 아동의 개인정보 처리에 관한 사항</h2>
+        <p class="none">
+          운영자는 만 14세 미만 아동의 회원 가입을 받지 않으며, 법정대리인의
+          동의를 받기 위한 개인정보를 포함하여 만 14세 미만 아동의 개인정보를
+          처리하지 않습니다. 만 14세 미만 아동의 개인정보가 수집된 사실을 알게
+          된 경우 지체 없이 해당 정보를 파기합니다.
+        </p>
+      </section>
+
+      <section id="period">
+        <h2>4. 개인정보의 처리 및 보유 기간</h2>
+        <p>
+          운영자는 법령에 따른 개인정보 보유·이용 기간 또는 정보주체로부터
+          개인정보를 수집 시에 동의받은 개인정보 보유·이용 기간 내에서
+          개인정보를 처리·보유합니다.
+        </p>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>구분</th>
+                <th>보유 기간</th>
+                <th>근거</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>회원 정보(아이디, 비밀번호, 프로필 이미지)</td>
+                <td>회원 탈퇴 시까지</td>
+                <td>정보주체의 동의</td>
+              </tr>
+              <tr>
+                <td>즐겨찾기한 곡 정보</td>
+                <td>
+                  회원 탈퇴 시까지 (이용자가 개별 삭제 또는 전체 삭제 가능)
+                </td>
+                <td>정보주체의 동의</td>
+              </tr>
+              <tr>
+                <td>접속 IP 주소(요청 횟수 제한 목적)</td>
+                <td>수집 시점부터 최대 24시간 이내 자동 삭제</td>
+                <td>「개인정보 보호법」 제15조제1항제4호</td>
+              </tr>
+              <tr>
+                <td>
+                  서버 접속기록(계정 식별자, 수행업무, 접속 IP 주소, 접속일시,
+                  처리 결과)
+                </td>
+                <td>수집일부터 400일(약 1년 1개월) 보관 후 삭제</td>
+                <td>「개인정보 보호법」 제29조</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          <strong
+            >회원 탈퇴 시 계정 정보와 즐겨찾기는 즉시 삭제되며 복구되지
+            않습니다.</strong
+          >
+          운영자는 탈퇴한 회원의 개인정보를 별도로 보존하지 않습니다.
+        </p>
+      </section>
+
+      <section id="destroy">
+        <h2>5. 개인정보의 파기 절차 및 방법</h2>
+        <ol>
+          <li>
+            운영자는 개인정보 보유기간의 경과, 처리 목적 달성 등 개인정보가
+            불필요하게 되었을 때에는 지체 없이 해당 개인정보를 파기합니다.
+          </li>
+          <li>
+            <strong>파기절차</strong> — 운영자는 파기 사유가 발생한 개인정보를
+            선정하고, 개인정보 보호책임자의 승인을 받아 개인정보를 파기합니다.
+            회원 탈퇴의 경우에는 이용자의 탈퇴 요청과 동시에 자동으로
+            파기됩니다.
+          </li>
+          <li>
+            <strong>파기방법</strong> — 전자적 파일 형태로 기록·저장된
+            개인정보는 기록을 재생할 수 없도록 데이터베이스에서 영구 삭제합니다.
+            종이 문서에 기록·저장된 개인정보는 보유하지 않습니다.
+          </li>
+        </ol>
+      </section>
+
+      <section id="third-party">
+        <h2>6. 개인정보의 제3자 제공에 관한 사항</h2>
+        <p class="none">
+          운영자는 정보주체의 개인정보를 제3자에게 제공하지 않습니다.
+        </p>
+        <p>
+          다만 서비스 특성상 노래방 곡 정보를 조회하기 위하여 태진미디어,
+          금영엔터테인먼트, manana API, iTunes Search API 등 외부 서비스에 조회
+          요청을 보냅니다. 이때 전송되는 정보는
+          <strong
+            >이용자가 입력한 검색어 또는 곡명·가수명뿐이며, 회원의 개인정보는
+            포함되지 않습니다.</strong
+          >
+        </p>
+      </section>
+
+      <section id="consign">
+        <h2>7. 개인정보 처리업무의 위탁에 관한 사항</h2>
+        <p>
+          운영자는 원활한 개인정보 업무처리를 위하여 다음과 같이 개인정보
+          처리업무를 위탁하고 있습니다.
+        </p>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>위탁받는 자(수탁자)</th>
+                <th>위탁하는 업무의 내용</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><mark class="todo">[호스팅 업체명]</mark></td>
+                <td>
+                  서비스 운영을 위한 서버 및 데이터베이스 인프라 제공·운영
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          운영자는 위탁계약 체결 시 「개인정보 보호법」 제26조에 따라 위탁업무
+          수행목적 외 개인정보 처리 금지, 기술적·관리적 보호조치, 재위탁 제한,
+          수탁자에 대한 관리·감독, 손해배상 등 책임에 관한 사항을 계약서 등
+          문서에 명시하고, 수탁자가 개인정보를 안전하게 처리하는지를 감독하고
+          있습니다. 위탁업무의 내용이나 수탁자가 변경될 경우에는 지체 없이 본
+          개인정보 처리방침을 통하여 공개하겠습니다.
+        </p>
+      </section>
+
+      <section id="oversea">
+        <h2>8. 개인정보의 국외 이전에 관한 사항</h2>
+        <p class="none">
+          <mark class="todo">[국내 호스팅을 사용하는 경우]</mark>
+          운영자는 개인정보를 국외로 이전하지 않습니다.
+        </p>
+        <p>
+          <mark class="todo"
+            >[해외 호스팅(예: AWS 해외 리전, Vercel, Fly.io 등)을 사용하는
+            경우에는 이 항목을 삭제하지 말고, 이전받는 자·이전 국가·이전 일시 및
+            방법·이전 항목·이전받는 자의 이용목적 및 보유기간·거부 방법을 표로
+            기재해야 합니다.]</mark
+          >
+        </p>
+      </section>
+
+      <section id="safety">
+        <h2>9. 개인정보의 안전성 확보조치에 관한 사항</h2>
+        <p>
+          운영자는 개인정보의 안전성 확보를 위해 다음과 같은 조치를 취하고
+          있습니다.
+        </p>
+        <ol>
+          <li>
+            <strong>관리적 조치</strong> — 개인정보에 접근할 수 있는 인원을
+            운영자 본인으로 최소화하고, 개인정보 처리 현황을 정기적으로 점검하고
+            있습니다.
+          </li>
+          <li>
+            <strong>기술적 조치</strong>
+            <ul>
+              <li>
+                비밀번호는 복호화가 불가능한 일방향 암호화(bcrypt) 방식으로
+                저장합니다.
+              </li>
+              <li>
+                개인정보가 오가는 구간은 보안 프로토콜(HTTPS)로 암호화하여
+                전송합니다.
+              </li>
+              <li>
+                로그인 세션 정보는 스크립트로 접근할 수 없는 방식(HttpOnly)으로
+                관리합니다.
+              </li>
+              <li>
+                비밀번호를 연속으로 틀린 경우 일정 시간 로그인을 제한하여 무단
+                접근 시도를 차단합니다.
+              </li>
+              <li>
+                비정상적인 대량 요청을 차단하기 위해 요청 횟수를 제한하고
+                있습니다.
+              </li>
+              <li>
+                개인정보처리시스템에 대한 접근 권한을 관리하고 접속기록을
+                보관·점검합니다.
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong>물리적 조치</strong> — 개인정보가 저장된 서버는 위탁받은
+            사업자의 데이터센터에서 출입통제 등 물리적 보호조치가 적용된 환경에
+            보관됩니다.
+          </li>
+        </ol>
+      </section>
+
+      <section id="not-processed">
+        <h2>10. 처리하지 않는 개인정보</h2>
+        <p>운영자는 다음에 해당하는 개인정보를 처리하지 않습니다.</p>
+        <ul>
+          <li>
+            <strong>민감정보</strong> — 사상·신념, 건강, 성생활 등에 관한 정보를
+            처리하지 않습니다.
+          </li>
+          <li>
+            <strong>고유식별정보</strong> — 주민등록번호, 여권번호,
+            운전면허번호, 외국인등록번호를 처리하지 않습니다.
+          </li>
+          <li>
+            <strong>가명정보</strong> — 개인정보를 가명처리하여 이용하거나
+            제공하지 않습니다.
+          </li>
+          <li>
+            <strong>자동화된 결정</strong> — 인공지능 등을 이용한 완전히
+            자동화된 결정을 하지 않습니다.
+          </li>
+          <li>
+            <strong>영상정보</strong> — 고정형·이동형 영상정보처리기기를
+            설치·운영하지 않습니다.
+          </li>
+          <li>
+            <strong>행태정보</strong> — 맞춤형 광고 등을 위한 행태정보를
+            수집하거나 제3자가 수집하도록 허용하지 않습니다.
+          </li>
+          <li>
+            <strong>추가적인 이용·제공</strong> — 수집 목적 외의 추가적인
+            이용·제공을 하지 않습니다.
+          </li>
+        </ul>
+      </section>
+
+      <section id="cookie">
+        <h2>11. 개인정보 자동 수집 장치의 설치·운영 및 거부에 관한 사항</h2>
+        <ol>
+          <li>
+            운영자는 로그인 상태를 유지하기 위하여 이용정보를 저장하고 수시로
+            불러오는 ‘쿠키(cookie)’를 사용합니다.
+          </li>
+          <li>
+            쿠키는 웹사이트 운영에 이용되는 서버(http)가 정보주체의 브라우저에
+            보내는 소량의 정보로서 정보주체의 컴퓨터 또는 모바일 기기에
+            저장되며, 웹사이트 접속 시 정보주체의 브라우저에서 서버로 자동
+            전송됩니다.
+          </li>
+          <li>
+            운영자가 사용하는 쿠키는
+            <strong>로그인 세션 유지 목적에 한정</strong>되며, 광고나 행태정보
+            수집에는 사용하지 않습니다. 로그인하지 않고 이용하는 경우에는 세션
+            쿠키가 생성되지 않습니다. 세션 쿠키의 유효기간은 최대 14일이며,
+            로그아웃 시 즉시 삭제됩니다.
+          </li>
+          <li>
+            정보주체는 브라우저 옵션 설정을 통해 쿠키 거부 등의 설정을 할 수
+            있습니다. 다만 쿠키를 차단하는 경우 로그인이 필요한 기능(계정
+            즐겨찾기 등)은 이용할 수 없습니다.
+          </li>
+        </ol>
+
+        <h3>쿠키 차단 방법</h3>
+        <p><strong>웹 브라우저</strong></p>
+        <ul>
+          <li>
+            크롬(Chrome) : 웹 브라우저 오른쪽 상단 ‘⁝’ 선택 &gt; 새 시크릿 창
+            (단축키 : Ctrl+Shift+N)
+          </li>
+          <li>
+            엣지(Edge) : 웹 브라우저 오른쪽 상단 ‘⋯’ 선택 &gt; 새 InPrivate 창
+            (단축키 : Ctrl+Shift+N)
+          </li>
+        </ul>
+        <p><strong>모바일 브라우저</strong></p>
+        <ul>
+          <li>
+            크롬(Chrome) : 모바일 브라우저 오른쪽 상단 ‘⁝’ 선택 &gt; 새 시크릿
+            탭
+          </li>
+          <li>
+            사파리(Safari) : 모바일 기기 설정 &gt; 앱 &gt; 사파리(Safari) &gt;
+            고급 &gt; 모든 쿠키 차단
+          </li>
+          <li>
+            삼성 인터넷 : 모바일 브라우저 아래쪽 ‘탭’ 아이콘 선택 &gt; 비밀 모드
+            켜기 &gt; 시작
+          </li>
+        </ul>
+      </section>
+
+      <section id="rights">
+        <h2>12. 정보주체와 법정대리인의 권리·의무 및 행사방법에 관한 사항</h2>
+        <ol>
+          <li>
+            정보주체는 운영자에 대해 언제든지 개인정보 열람·정정·삭제·처리정지
+            및 동의 철회 등을 요구(이하 “권리 행사”라 함)할 수 있습니다.
+          </li>
+          <li>
+            권리 행사는 「개인정보 보호법 시행령」 제41조제1항에 따라 서면,
+            전자우편 등을 통하여 하실 수 있으며, 운영자는 이에 대해 지체 없이
+            조치하겠습니다.
+            <ul>
+              <li>
+                정보주체는 언제든지 앱의 <strong>‘마이페이지’</strong>에서 계정
+                정보와 즐겨찾기를 직접 조회·수정·삭제할 수 있습니다.
+              </li>
+              <li>
+                정보주체는 언제든지
+                <strong>‘설정 &gt; 즐겨찾기 전체 삭제’</strong>로 저장된 곡
+                정보를 일괄 삭제할 수 있습니다.
+              </li>
+              <li>
+                정보주체는 언제든지 <strong>‘설정 &gt; 회원탈퇴’</strong>로
+                동의를 철회하고 계정과 개인정보 전부를 삭제할 수 있습니다.
+              </li>
+            </ul>
+          </li>
+          <li>
+            권리 행사는 정보주체의 법정대리인이나 위임을 받은 자 등 대리인을
+            통하여 하실 수도 있습니다. 이 경우 “개인정보 처리 방법에 관한 고시”
+            [별지 제11호] 서식에 따른 위임장을 제출하셔야 합니다.
+          </li>
+          <li>
+            정보주체가 개인정보 열람 및 처리정지를 요구할 권리는 「개인정보
+            보호법」 제35조제4항 및 제37조제2항에 의하여 제한될 수 있습니다.
+          </li>
+          <li>
+            운영자는 권리 행사를 한 자가 본인이거나 정당한 대리인인지를
+            확인합니다.
+          </li>
+          <li>
+            정보주체는 아래의 연락처로 권리 행사를 할 수 있으며, 운영자는
+            청구받은 날로부터 10일 이내에 회신하겠습니다.
+            <br />▶ 접수·처리 연락처 : <mark class="todo">[이메일 주소]</mark>
+          </li>
+        </ol>
+      </section>
+
+      <section id="officer">
+        <h2>13. 개인정보 보호책임자</h2>
+        <p>
+          운영자는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보
+          처리와 관련한 정보주체의 불만처리 및 피해구제 등을 위하여 아래와 같이
+          개인정보 보호책임자를 지정하고 있습니다.
+        </p>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>구분</th>
+                <th>내용</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>개인정보 보호책임자</th>
+                <td><mark class="todo">[성명]</mark></td>
+              </tr>
+              <tr>
+                <th>연락처</th>
+                <td><mark class="todo">[이메일 주소]</mark></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          정보주체는 오네가이 서비스를 이용하시면서 발생한 모든 개인정보보호
+          관련 문의, 불만처리, 피해구제 등에 관한 사항을 개인정보 보호책임자에게
+          문의할 수 있습니다. 운영자는 정보주체의 문의에 대해 지체 없이 답변 및
+          처리해 드리겠습니다.
+        </p>
+      </section>
+
+      <section id="remedy">
+        <h2>14. 정보주체의 권익침해에 대한 구제방법</h2>
+        <p>
+          정보주체는 개인정보 침해로 인한 분쟁 해결, 상담 등 피해 구제를 받고자
+          하는 경우 아래의 기관에 신고·상담 등을 신청하실 수 있습니다.
+        </p>
+        <ol>
+          <li>
+            개인정보 분쟁조정위원회 : (국번없이) 1833-6972 (<a
+              href="https://www.kopico.go.kr"
+              target="_blank"
+              rel="noopener noreferrer"
+              >www.kopico.go.kr</a
+            >)
+          </li>
+          <li>
+            개인정보침해 신고센터 : (국번없이) 118 (<a
+              href="https://privacy.kisa.or.kr"
+              target="_blank"
+              rel="noopener noreferrer"
+              >privacy.kisa.or.kr</a
+            >)
+          </li>
+          <li>
+            대검찰청 : (국번없이) 1301 (<a
+              href="https://www.spo.go.kr"
+              target="_blank"
+              rel="noopener noreferrer"
+              >www.spo.go.kr</a
+            >)
+          </li>
+          <li>
+            경찰청 : (국번없이) 182 (<a
+              href="https://ecrm.police.go.kr"
+              target="_blank"
+              rel="noopener noreferrer"
+              >ecrm.police.go.kr</a
+            >)
+          </li>
+        </ol>
+        <p>
+          「개인정보 보호법」 제35조(개인정보의 열람), 제36조(개인정보의
+          정정·삭제), 제37조(개인정보의 처리정지 등)의 규정에 의한 요구에 대하여
+          공공기관의 장이 행한 처분 또는 부작위로 인하여 권리 또는 이익의 침해를
+          받은 자는 「행정심판법」이 정하는 바에 따라 행정심판을 청구할 수
+          있습니다.
+        </p>
+      </section>
+
+      <section id="change">
+        <h2>15. 개인정보 처리방침의 변경에 관한 사항</h2>
+        <ol>
+          <li>
+            이 개인정보 처리방침은 <mark class="todo">[YYYY. M. D.]</mark>부터
+            적용됩니다.
+          </li>
+          <li>
+            법령, 정책 또는 보안기술의 변경에 따라 내용의 추가·삭제 및 수정이
+            있을 경우에는 변경되는 개인정보 처리방침의 시행일 7일 전부터 서비스
+            내 공지사항을 통하여 고지할 것입니다. 다만, 처리하는 개인정보의
+            항목이나 처리 목적의 변경 등 정보주체의 권리에 중대한 영향을 미치는
+            변경이 있는 경우에는 변경 전후를 비교하여 확인할 수 있도록 별도로
+            안내하겠습니다.
+          </li>
+          <li>
+            이전 버전의 개인정보 처리방침은 아래에서 확인하실 수 있습니다.
+            <br /><span class="none" style="display: block; margin-top: 8px"
+              >이전 버전이 없습니다. (최초 수립)</span
+            >
+          </li>
+        </ol>
+      </section>
+
+      <footer>
+        <p>
+          공고일자 : <mark class="todo">[YYYY. M. D.]</mark> &nbsp;|&nbsp;
+          시행일자 : <mark class="todo">[YYYY. M. D.]</mark>
+        </p>
+        <p>
+          오네가이는 개인이 운영하는 비영리 서비스입니다. &nbsp;|&nbsp;
+          <a href="./terms.html">이용약관</a>
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>

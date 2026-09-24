@@ -1,0 +1,140 @@
+"""DeepL 번역.
+
+일본어 곡 제목을 한국어로 옮겨 함께 보여준다.
+
+키가 없으면 기능만 꺼진다. 예외를 던지지 않고 available=False를 돌려주므로
+클라이언트는 번역 영역만 감추면 된다.
+"""
+
+import logging
+
+import requests
+from flask import current_app
+
+from app.utils import cache
+
+logger = logging.getLogger(__name__)
+
+# 무료 키는 ':fx'로 끝난다. 엔드포인트가 다르므로 키를 보고 고른다.
+FREE_URL = "https://api-free.deepl.com/v2/translate"
+PRO_URL = "https://api.deepl.com/v2/translate"
+
+# 번역 결과는 바뀌지 않는다. 길게 캐싱해 호출량(무료 월 50만자)을 아낀다.
+CACHE_TTL = 30 * 24 * 60 * 60
+
+MAX_TEXT_LENGTH = 200
+
+# DeepL은 한 요청에 text를 여러 개 받는다. 제목처럼 짧은 문장을 하나씩
+# 보내면 요청 수만 늘고 한도는 똑같이 줄어든다.
+BATCH_SIZE = 50
+
+
+def is_enabled():
+    return bool(current_app.config.get("DEEPL_API_KEY"))
+
+
+def _endpoint(key):
+    return FREE_URL if key.endswith(":fx") else PRO_URL
+
+
+def translate(text, target_lang="KO", source_lang="JA"):
+    """번역 결과를 반환한다. 실패해도 예외를 던지지 않는다."""
+    text = (text or "").strip()
+    if not text:
+        return {"available": False, "reason": "번역할 문장이 없어요."}
+
+    if len(text) > MAX_TEXT_LENGTH:
+        text = text[:MAX_TEXT_LENGTH]
+
+    key = current_app.config.get("DEEPL_API_KEY")
+    if not key:
+        return {"available": False, "reason": "번역 기능이 설정되지 않았어요."}
+
+    cache_key = cache.make_key("translate", target_lang, text)
+    cached = cache.get_json(cache_key)
+    if cached is not None:
+        return {**cached, "cached": True}
+
+    try:
+        response = requests.post(
+            _endpoint(key),
+            headers={"Authorization": f"DeepL-Auth-Key {key}"},
+            data={
+                "text": text,
+                "target_lang": target_lang,
+                "source_lang": source_lang,
+            },
+            timeout=current_app.config["DEEPL_TIMEOUT"],
+        )
+        response.raise_for_status()
+        payload = response.json()
+        translated = payload["translations"][0]["text"]
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else 0
+        # 456 = 이달 번역 할당량 소진
+        reason = (
+            "이번 달 번역 한도를 다 썼어요."
+            if status == 456
+            else "번역을 가져오지 못했어요."
+        )
+        logger.warning("DeepL 호출 실패 (HTTP %s)", status)
+        return {"available": False, "reason": reason}
+    except Exception as exc:
+        logger.warning("DeepL 호출 실패: %s", exc)
+        return {"available": False, "reason": "번역을 가져오지 못했어요."}
+
+    result = {
+        "available": True,
+        "text": text,
+        "translated": translated,
+        "target_lang": target_lang,
+    }
+    cache.set_json(cache_key, result, ttl=CACHE_TTL)
+    return {**result, "cached": False}
+
+
+def translate_many(texts, target_lang="KO", source_lang="JA"):
+    """여러 문장을 한 요청으로 옮긴다. [(원문, 번역)] 목록을 돌려준다.
+
+    카탈로그 제목을 통째로 번역할 때 쓴다 (`translate-titles`). 화면용
+    `translate()`와 달리 **캐시를 쓰지 않는다** — 결과가 DB에 남기 때문이다.
+
+    실패하면 빈 목록. 한도 소진(456)은 따로 알려 준다.
+    """
+    texts = [t.strip()[:MAX_TEXT_LENGTH] for t in texts if (t or "").strip()]
+    if not texts:
+        return [], None
+
+    key = current_app.config.get("DEEPL_API_KEY")
+    if not key:
+        return [], "번역 기능이 설정되지 않았어요."
+
+    try:
+        response = requests.post(
+            _endpoint(key),
+            headers={"Authorization": f"DeepL-Auth-Key {key}"},
+            data={
+                "text": texts,
+                "target_lang": target_lang,
+                "source_lang": source_lang,
+            },
+            timeout=current_app.config["DEEPL_TIMEOUT"] * 3,
+        )
+        response.raise_for_status()
+        got = [t["text"] for t in response.json()["translations"]]
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else 0
+        if status == 456:
+            return [], "이번 달 번역 한도를 다 썼어요."
+        logger.warning("DeepL 일괄 호출 실패 (HTTP %s)", status)
+        return [], f"번역 호출이 실패했어요 (HTTP {status})."
+    except Exception as exc:
+        logger.warning("DeepL 일괄 호출 실패: %s", exc)
+        return [], "번역 호출이 실패했어요."
+
+    # 응답은 보낸 순서를 지킨다. 개수가 어긋나면 짝이 밀리므로 버린다.
+    if len(got) != len(texts):
+        logger.error("DeepL 응답 개수 불일치: %d개 보내고 %d개 받음", len(texts), len(got))
+        return [], "번역 결과 수가 맞지 않아요."
+
+    return list(zip(texts, got)), None

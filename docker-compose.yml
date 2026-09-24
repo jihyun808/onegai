@@ -1,0 +1,93 @@
+# 개발용 백엔드 스택: Flask + Redis + MySQL
+#
+#   docker compose up          백엔드 3종 기동
+#   docker compose up client   프론트까지 컨테이너로
+#
+# 프론트는 기본으로 띄우지 않는다. Vite는 호스트에서 `npm run dev`로 돌리는 쪽이
+# HMR이 빠르고, 어차피 서버 포트(5001)가 열려 있어 프록시가 그대로 붙는다.
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-karaokedayo}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-karaokedayo}
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 컨테이너를 처음 만들 때만 실행된다.
+      # 스키마를 고쳤다면 `docker compose down -v`로 볼륨을 지워야 다시 돈다.
+      - ./server/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-p${MYSQL_ROOT_PASSWORD:-karaokedayo}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  redis:
+    image: redis:8-alpine
+    # 검색 캐시는 날아가도 다시 채워지므로 영속화하지 않는다.
+    # 대신 메모리 상한을 두어 무한정 커지지 않게 한다.
+    command: redis-server --save '' --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  server:
+    build: ./server
+    # 이미지의 기본은 gunicorn이다. 개발에선 리로더가 필요해 덮어쓴다.
+    command: python run.py
+    ports:
+      - '5001:5001'
+    environment:
+      FLASK_ENV: ${FLASK_ENV:-development}
+      # 컨테이너끼리는 서비스 이름으로 통신한다
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-karaokedayo}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-karaokedayo}
+      REDIS_HOST: redis
+      # 호스트에서 돌리는 Vite(5173)와 컨테이너 Vite 양쪽을 허용
+      CORS_ORIGINS: http://localhost:5173
+    volumes:
+      # 소스를 마운트해 코드 수정이 바로 반영되게 한다 (Flask 디버그 리로더)
+      - ./server:/app
+      # 컨테이너 안에서 만든 캐시가 호스트로 새지 않게 덮어쓴다
+      - /app/__pycache__
+    depends_on:
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://localhost:5001/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  client:
+    build: ./client
+    profiles: ['client']
+    ports:
+      - '5173:5173'
+    environment:
+      # 컨테이너 안에서는 호스트가 아니라 server 서비스를 봐야 한다
+      VITE_PROXY_TARGET: http://server:5001
+    volumes:
+      - ./client:/app
+      # 호스트의 node_modules(맥용 바이너리)가 컨테이너를 덮지 않게 분리
+      - /app/node_modules
+    depends_on:
+      - server
+
+volumes:
+  mysql-data:

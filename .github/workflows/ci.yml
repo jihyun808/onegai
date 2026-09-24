@@ -1,0 +1,70 @@
+# 푸시와 PR마다 서버·클라이언트를 각각 검사한다.
+#
+# 두 잡을 나눈 이유 — 서버가 깨졌는지 클라이언트가 깨졌는지 한눈에 보이고,
+# 둘이 병렬로 돌아 전체 시간이 느린 쪽에 맞춰진다.
+#
+# 테스트는 네트워크를 타지 않는다 (외부 API·DB·Redis 모두 대체).
+# 그래서 CI에 MySQL이나 Redis 서비스를 띄울 필요가 없다.
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+# 같은 브랜치에 연달아 푸시하면 앞의 실행은 취소한다.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # 로컬 개발 환경과 맞춘다
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: server/requirements-dev.txt
+
+      - run: pip install -r requirements-dev.txt
+
+      - name: pytest
+        run: python -m pytest -q
+
+  client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      # lockfile 그대로 설치한다. install과 달리 lockfile을 고치지 않아
+      # 로컬과 다른 버전이 몰래 들어오지 않는다.
+      - run: npm ci
+
+      - run: npm run lint
+
+      # 타입 오류는 vitest가 안 잡는다. 따로 돌린다.
+      - name: 타입 검사
+        run: npx tsc -b
+
+      - run: npm test
+
+      # 빌드가 깨지는 것은 테스트가 통과해도 생긴다 (import 경로, 환경변수 등)
+      - run: npm run build
