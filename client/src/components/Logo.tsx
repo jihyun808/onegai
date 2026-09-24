@@ -1,9 +1,9 @@
 import './Logo.css'
 
 /**
- * "가라오케다요" 워드마크.
+ * "오네가이" 워드마크.
  *
- * 앞의 '가라오케'는 먹색, 뒤의 '다요'는 코럴로 끊어 강조하고
+ * 앞의 '오네'는 먹색, 뒤의 '가이'는 코럴로 끊어 강조하고
  * 위에 음표를 흩뿌려 노래방 느낌을 낸다. 세 화면이 공유한다.
  */
 export function Logo() {
@@ -34,8 +34,8 @@ export function Logo() {
       </span>
 
       <h1 className="logo__text">
-        <span className="logo__ink">가라오케</span>
-        <span className="logo__accent">다요</span>
+        <span className="logo__ink">오네</span>
+        <span className="logo__accent">가이</span>
       </h1>
     </div>
   )

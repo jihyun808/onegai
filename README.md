@@ -1,15 +1,15 @@
-# karaokedayo (가라오케다요, Ka-da)
+# karaokedayo (오네가이, onegai)
 
 일본 노래방 번호 검색 전용 모바일 웹앱.
 
 ## 기술 스택
 
-| 영역 | 스택 |
-| --- | --- |
+| 영역   | 스택                                      |
+| ------ | ----------------------------------------- |
 | Client | React + TypeScript (Vite), 추후 Expo 래핑 |
-| Server | Python Flask |
-| DB | MySQL |
-| Cache | Redis |
+| Server | Python Flask                              |
+| DB     | MySQL                                     |
+| Cache  | Redis                                     |
 
 ## 폴더 구조
 
@@ -60,6 +60,17 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
+### Mobile (iOS 앱)
+
+```bash
+cd mobile
+npm install
+npx expo start --go --ios   # 시뮬레이터의 Expo Go로 실행 (서버는 localhost:5001)
+```
+
+`client/`(웹)와 같은 서버 API를 쓴다. 서버 주소는 `EXPO_PUBLIC_API_URL`로 넣는다
+(`eas.json`의 profile별 env).
+
 ### Server
 
 ```bash
@@ -93,15 +104,15 @@ Redis 없이도 서버는 정상 동작한다 (캐시를 건너뛰고 매번 man
 
 ### `GET /api/search`
 
-| 파라미터 | 값 | 기본값 |
-| --- | --- | --- |
-| `q` | 검색어 (필수) | - |
-| `type` | `song` \| `singer` \| `lyrics` | `song` |
-| `brand` | `tj` \| `kumyoung` \| `all` | `all` |
-| `limit` | 1 ~ 200 | `50` |
-| `offset` | 0 이상 | `0` |
-| `sort` | `release` \| `no` | `release` |
-| `korean` | `1`이면 한국어 곡도 표시 | 감춤 |
+| 파라미터 | 값                             | 기본값    |
+| -------- | ------------------------------ | --------- |
+| `q`      | 검색어 (필수)                  | -         |
+| `type`   | `song` \| `singer` \| `lyrics` | `song`    |
+| `brand`  | `tj` \| `kumyoung` \| `all`    | `all`     |
+| `limit`  | 1 ~ 200                        | `50`      |
+| `offset` | 0 이상                         | `0`       |
+| `sort`   | `release` \| `no`              | `release` |
+| `korean` | `1`이면 한국어 곡도 표시       | 감춤      |
 
 검색어는 최대 100자.
 
@@ -162,13 +173,13 @@ curl "http://localhost:5001/api/search?q=Ado&type=singer&brand=tj"
 
 `app/utils/normalize.py`. TJ와 금영이 같은 곡을 다르게 등록하는 문제를 흡수한다.
 
-| 규칙 | 예시 |
-| --- | --- |
-| 1. 공백 제거 | `세월이 가면` = `세월이가면` |
+| 규칙                     | 예시                                                               |
+| ------------------------ | ------------------------------------------------------------------ |
+| 1. 공백 제거             | `세월이 가면` = `세월이가면`                                       |
 | 2. 전각/반각 통일 (NFKC) | `Ｔｏｔ　Ｍｕｓｉｃａ` = `Tot Musica`, `ﾚﾃﾞｨﾒｲﾄﾞ` = `レディメイド` |
-| 3. 괄호 안 부가정보 제거 | `花に亡霊 ("泣きたい私は猫をかぶる"OST)` = `花に亡霊` |
-| 4. 대소문자 무시 | `Take A Bow` = `Take a bow` |
-| 5. 카타카나 → 히라가나 | `レディメイド` = `れでぃめいど` |
+| 3. 괄호 안 부가정보 제거 | `花に亡霊 ("泣きたい私は猫をかぶる"OST)` = `花に亡霊`              |
+| 4. 대소문자 무시         | `Take A Bow` = `Take a bow`                                        |
+| 5. 카타카나 → 히라가나   | `レディメイド` = `れでぃめいど`                                    |
 
 - 가수명은 `A,B` / `B,A` 같은 순서 차이도 흡수한다 (분리 후 정렬).
 - 장음 부호 `ー`는 남긴다. `メイド`와 `メード`는 실제로 다른 표기다.
@@ -230,11 +241,11 @@ DELETE /api/favorites/<brand>/<no>
 
 `GET /api/health`의 `features`로 어떤 기능이 켜져 있는지 미리 알 수 있다.
 
-| 엔드포인트 | 소스 | 키 | 캐시 |
-| --- | --- | --- | --- |
-| `GET /api/translate?text=&target=KO` | DeepL | `DEEPL_API_KEY` | 30일 |
-| `GET /api/preview?title=&singer=` | iTunes Search | **불필요** | 7일 |
-| `GET /api/lyrics?title=&singer=` | 금영 공식 | **불필요** | 30일 (없으면 1일) |
+| 엔드포인트                           | 소스          | 키              | 캐시              |
+| ------------------------------------ | ------------- | --------------- | ----------------- |
+| `GET /api/translate?text=&target=KO` | DeepL         | `DEEPL_API_KEY` | 30일              |
+| `GET /api/preview?title=&singer=`    | iTunes Search | **불필요**      | 7일               |
+| `GET /api/lyrics?title=&singer=`     | 금영 공식     | **불필요**      | 30일 (없으면 1일) |
 
 ```json
 { "available": true, "preview_url": "https://…m4a",
@@ -282,10 +293,10 @@ docker compose exec server flask --app run crawl-daily      # 매일
 docker compose exec server flask --app run crawl-status     # 현황
 ```
 
-| 브랜드 | 폴백 소스 |
-| --- | --- |
-| TJ | **tjmedia.com 공식 → 실패 시 manana 폴백** |
-| 금영 | **kysing.kr 공식 → 실패 시 manana 폴백** |
+| 브랜드 | 폴백 소스                                  |
+| ------ | ------------------------------------------ |
+| TJ     | **tjmedia.com 공식 → 실패 시 manana 폴백** |
+| 금영   | **kysing.kr 공식 → 실패 시 manana 폴백**   |
 
 둘 다 공식을 먼저 보는 이유가 다르다.
 
@@ -338,12 +349,12 @@ gunicorn -c gunicorn.conf.py run:app
 
 서비스 4개를 한 프로젝트에 둔다.
 
-| 서비스 | 만드는 법 | 설정 |
-| --- | --- | --- |
-| MySQL | New → Database → MySQL | 그대로 |
-| Redis | New → Database → Redis | 그대로 |
-| server | New → GitHub Repo | Root Directory `/server`, Config file `/server/railway.toml` |
-| crawl | 같은 레포로 하나 더 | Root Directory `/server`, Config file `/server/railway.cron.toml` |
+| 서비스 | 만드는 법              | 설정                                                              |
+| ------ | ---------------------- | ----------------------------------------------------------------- |
+| MySQL  | New → Database → MySQL | 그대로                                                            |
+| Redis  | New → Database → Redis | 그대로                                                            |
+| server | New → GitHub Repo      | Root Directory `/server`, Config file `/server/railway.toml`      |
+| crawl  | 같은 레포로 하나 더    | Root Directory `/server`, Config file `/server/railway.cron.toml` |
 
 server와 crawl에 넣을 환경변수 (`${{...}}`는 Railway가 다른 서비스 값으로 채운다):
 
@@ -376,6 +387,7 @@ DEEPL_API_KEY=<선택>
   ```
 
   도중에 재배포되면 끊기지만, 받은 달은 건너뛰므로 다시 돌리면 이어서 받는다.
+
 - 매일 크롤링은 crawl 서비스가 한국 시간 04:00에 돈다 (`railway.cron.toml`).
 
 #### 자동 배포 (CI/CD)
@@ -392,3 +404,22 @@ server·crawl 서비스 Settings에서 한 번만 맞춘다:
 - **Wait for CI**: 켠다 — CI가 실패한 커밋은 배포하지 않는다
 - 감시 경로는 `railway.toml`의 `watchPatterns`(`/server/**`)라 프론트만 바꾼 커밋은 재배포하지 않는다
 
+### App Store (EAS)
+
+`mobile/`을 EAS로 빌드해 App Store Connect에 올린다. Xcode 프로젝트는 두지 않는다 —
+`ios/`는 `app.json`에서 빌드할 때마다 만들어진다.
+
+```bash
+cd mobile
+npx eas-cli@latest login
+npx eas-cli@latest build --platform ios --profile production
+npx eas-cli@latest submit --platform ios --latest
+```
+
+제출 전에 확인할 것:
+
+- `eas.json`의 `EXPO_PUBLIC_API_URL`을 Railway 서버 주소로 바꾼다 (`REPLACE-ME`)
+- `EXPO_PUBLIC_LEGAL_BASE_URL`(약관·개인정보 처리방침)을 GitHub Pages 주소로 넣는다 —
+  심사에서 개인정보 처리방침 URL이 필수다
+- `assets/icon.png`(1024×1024), `splash-icon.png`를 실제 앱 아이콘으로 바꾼다
+- 번들 ID는 `com.eeez.onegai` (`app.json`)

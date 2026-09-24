@@ -8,7 +8,7 @@ import { MoreSearch } from '../components/MoreSearch'
 import { SearchTips } from '../components/SearchTips'
 import { StateMessage } from '../components/StateMessage'
 import { HOT_SEARCHES } from '../data/hotSearches'
-import { POPULAR } from '../data/popular'
+import { POPULAR, POPULAR_SOURCE } from '../data/popular'
 import { useAuth } from '../hooks/useAuth'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll'
@@ -133,6 +133,7 @@ export function HomePage({ query, setQuery, type, setType, brand, setBrand }: Se
           <h2 className="home__heading home__heading--popular">
             J-POP 인기곡 <span className="home__count">50</span>
           </h2>
+          <p className="home__source">{POPULAR_SOURCE}</p>
           {/*
             50장을 다 늘어놓으면 홈이 끝없이 길어진다. 다섯 장 높이로 잘라
             상자 안에서만 스크롤한다. overscroll-behavior가 상자 끝에서

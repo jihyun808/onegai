@@ -109,6 +109,12 @@
   margin-top: 24px;
 }
 
+.home__source {
+  margin: -6px 0 10px;
+  color: var(--ink-faint);
+  font-size: 11px;
+}
+
 .home__list--ranked {
   margin: 0;
   padding: 0;

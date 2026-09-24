@@ -22,32 +22,9 @@ export const colors = {
 /** App.tsx에서 불러오는 글꼴 이름. 본문은 Noto Sans KR, 제목·숫자는 손글씨. */
 export const fonts = {
   body: 'NotoSansKR_400Regular',
+  bodySemi: 'NotoSansKR_600SemiBold',
   bodyBold: 'NotoSansKR_700Bold',
   hand: 'Gaegu_400Regular',
   handBold: 'Gaegu_700Bold',
   logo: 'Jalnan',
-}
-
-/**
- * 손그림 테두리. 웹은 SVG 왜곡 필터로 선을 구불거리게 했지만 네이티브엔 없다.
- * 모서리마다 반경을 다르게 줘서 "대충 그린" 느낌만 살린다.
- * 카드마다 조금씩 다르게 — 같은 도형이 반복되면 손그림 느낌이 죽는다.
- */
-const SKETCH_CORNERS = [
-  [22, 10, 20, 12],
-  [10, 22, 12, 20],
-  [18, 12, 22, 10],
-] as const
-
-export function sketch(index = 0) {
-  const [tl, tr, br, bl] = SKETCH_CORNERS[index % SKETCH_CORNERS.length]
-  return {
-    backgroundColor: colors.paper,
-    borderWidth: 2,
-    borderColor: colors.line,
-    borderTopLeftRadius: tl,
-    borderTopRightRadius: tr,
-    borderBottomRightRadius: br,
-    borderBottomLeftRadius: bl,
-  }
 }
