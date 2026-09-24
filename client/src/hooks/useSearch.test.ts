@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { useSearch } from './useSearch'
 
-/** 서버 응답 한 장. */
 function page({
   songs,
   returned,
@@ -35,7 +34,6 @@ function page({
   } as Response
 }
 
-/** 호출된 URL을 순서대로 남긴다. */
 function mockPages(pages: Response[]) {
   const urls: string[] = []
   vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
@@ -47,7 +45,6 @@ function mockPages(pages: Response[]) {
 
 describe('useSearch 페이지 넘기기', () => {
   it('공식까지 뒤진 결과였다면 다음 페이지도 공식으로 부른다', async () => {
-    // 1차(DB만)가 0건 → 2차(공식)에서 115곡 → 스크롤로 다음 장
     const urls = mockPages([
       page({ songs: 0, returned: 0, complete: false }),
       page({ songs: 115, returned: 50, has_more: true, titles: ['メズマライザー'] }),
@@ -60,7 +57,6 @@ describe('useSearch 페이지 넘기기', () => {
     act(() => result.current.loadMore())
     await waitFor(() => expect(urls).toHaveLength(3))
 
-    // 이게 빠지면 서버가 1차 캐시를 보고 0건을 돌려준다 → '검색 결과가 없어요'
     expect(urls[2]).toContain('full=1')
     expect(urls[2]).toContain('offset=50')
   })

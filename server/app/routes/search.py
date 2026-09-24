@@ -8,11 +8,7 @@ bp = Blueprint("search", __name__, url_prefix="/api")
 
 @bp.get("/search")
 def search_songs():
-    """GET /api/search?q={검색어}&type={song|singer|lyrics}&brand={tj|kumyoung|all}
 
-    full=1을 붙이면 공식 사이트까지 뒤진다(느림). 생략하면 자체 DB만 본다(빠름).
-    응답의 complete가 false면 아직 전부가 아니라는 뜻이다.
-    """
     try:
         payload = search(
             keyword=request.args.get("q"),
@@ -30,4 +26,3 @@ def search_songs():
         return jsonify({"error": "upstream_error", "message": str(exc)}), 502
 
     return jsonify(payload)
-

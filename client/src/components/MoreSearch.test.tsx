@@ -30,7 +30,6 @@ describe('MoreSearch', () => {
   })
 
   it('검색어를 따옴표로 묶어 인코딩한다', () => {
-    // 묶지 않으면 낱말이 흩어져 엉뚱한 결과가 나온다
     const url = webSearchUrl(' 夜に駆ける ')
     expect(url).toContain(encodeURIComponent('"夜に駆ける" 노래방 번호'))
   })

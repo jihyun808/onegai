@@ -33,7 +33,6 @@ describe('LyricsModal', () => {
   })
 
   it('가사가 오기 전에도 검색 링크를 띄운다', async () => {
-    // 기다리기 싫은 사람은 바로 나갈 수 있어야 한다
     vi.spyOn(globalThis, 'fetch').mockReturnValue(new Promise(() => {}))
     render(<LyricsModal title="夜に駆ける" singer="YOASOBI" onClose={() => {}} />)
 
@@ -86,7 +85,6 @@ describe('LyricsModal', () => {
   })
 
   it('닫는 중에 응답이 와도 터지지 않는다', async () => {
-    // 가사를 다 받기 전에 닫으면 없는 컴포넌트에 상태를 쓰게 된다
     const abort = vi.fn()
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       (_url, init) =>

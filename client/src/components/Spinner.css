@@ -25,7 +25,6 @@
   }
 }
 
-/* 애니메이션을 줄이는 설정이면 회전 대신 은은한 깜빡임만 */
 @media (prefers-reduced-motion: reduce) {
   .spinner__wheel rect {
     animation: none;

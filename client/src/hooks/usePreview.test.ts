@@ -4,11 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiRequestError } from '../utils/api'
 import { stopPreview, usePreview } from './usePreview'
 
-/**
- * jsdom에는 오디오 재생이 없다. `Audio` 생성자를 가로채는 대신
- * HTMLMediaElement의 play/pause만 갈아 끼우고, play가 불린 요소를 모아 둔다 —
- * "지금 몇 개가 울리고 있나"를 확인하려면 그 목록이 필요하다.
- */
 const created: HTMLAudioElement[] = []
 let playImpl: () => Promise<void>
 
@@ -36,11 +31,6 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  // 재생기는 모듈 수준에 하나뿐이라 테스트끼리 샌다. spy 복원과 달리
-  // 이건 vitest가 되돌려주지 않으므로 직접 멈춰야 한다.
-  //
-  // **act 안에서 멈춘다.** 이 afterEach가 setup의 cleanup보다 먼저 돌아
-  // 아직 붙어 있는 컴포넌트에 상태 변경이 가기 때문이다.
   act(() => stopPreview())
 })
 
@@ -63,7 +53,6 @@ describe('usePreview', () => {
     const fetchSpy = mockFetch(FOUND)
     const { result } = renderHook(() => usePreview('id-1', '夜に駆ける', 'YOASOBI'))
 
-    // 그리기만 해서는 아무것도 부르지 않는다 — 카드 50장이면 요청 50번이다
     expect(fetchSpy).not.toHaveBeenCalled()
 
     await act(async () => {
@@ -124,8 +113,6 @@ describe('usePreview', () => {
   })
 
   it('앞 곡을 정리하다가 다음 곡을 끄지 않는다', async () => {
-    // 정리할 때 src를 비우면 error 이벤트가 나는데, 리스너가 붙어 있으면
-    // 그 핸들러가 방금 시작한 다음 곡까지 껐다.
     mockFetch(FOUND)
     const first = renderHook(() => usePreview('id-1', 'A', '가수'))
     const second = renderHook(() => usePreview('id-2', 'B', '가수'))
@@ -138,7 +125,6 @@ describe('usePreview', () => {
     await act(async () => {
       await second.result.current.toggle()
     })
-    // 앞 곡이 뒤늦게 error를 뱉어도 지금 곡은 멀쩡해야 한다
     act(() => {
       previous.dispatchEvent(new Event('error'))
     })
@@ -177,7 +163,6 @@ describe('usePreview', () => {
     const { result } = renderHook(() => usePreview('id-1', 'A', '가수'))
 
     await act(async () => {
-      // 첫 호출이 끝나기 전에 두 번 더 누른다
       const pending = result.current.toggle()
       result.current.toggle()
       result.current.toggle()
@@ -200,7 +185,6 @@ describe('usePreview', () => {
   })
 
   it('통신 실패는 missing이 아니라 failed다 — 다시 누르면 살아난다', async () => {
-    // 잠깐 끊긴 것 때문에 버튼이 영영 잠기면 안 된다
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
       .mockRejectedValueOnce(new ApiRequestError('실패', 502))

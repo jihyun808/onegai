@@ -33,7 +33,6 @@ describe('SongCard', () => {
   it('한쪽에만 있는 곡도 자리를 비워 열을 맞춘다', () => {
     renderCard(TJ_ONLY)
 
-    // 금영 칸이 사라지면 카드마다 번호 위치가 달라져 읽기 힘들다
     expect(screen.getByText('금영')).toBeInTheDocument()
     expect(screen.getByText('—')).toBeInTheDocument()
   })
@@ -72,7 +71,6 @@ describe('SongCard', () => {
   })
 
   it('그리기만 해서는 미리듣기를 부르지 않는다', () => {
-    // 카드 50장이면 iTunes 요청도 50번이 된다
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
     renderCard()
     expect(fetchSpy).not.toHaveBeenCalled()

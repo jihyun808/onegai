@@ -3,7 +3,6 @@ import './Segmented.css'
 export interface SegmentOption<T extends string> {
   value: T
   label: string
-  /** 선택 시 강조색. 브랜드 필터에서 TJ/금영 색을 쓰기 위한 것. */
   tone?: 'tj' | 'kumyoung'
 }
 
@@ -14,7 +13,6 @@ interface Props<T extends string> {
   onChange: (value: T) => void
 }
 
-/** 검색 타입 토글과 브랜드 필터가 같은 형태를 쓴다. */
 export function Segmented<T extends string>({
   label,
   options,

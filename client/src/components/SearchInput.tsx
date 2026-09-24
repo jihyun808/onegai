@@ -17,7 +17,6 @@ export function SearchInput({ value, onChange, busy }: Props) {
         placeholder="곡명 또는 가수명으로 검색"
         aria-label="곡명 또는 가수명으로 검색"
         autoComplete="off"
-        // 일본어 입력을 자주 쓰므로 자동 대문자/교정은 끈다
         autoCapitalize="off"
         autoCorrect="off"
         spellCheck={false}

@@ -2,9 +2,6 @@ import Svg, { Circle, Path } from 'react-native-svg'
 
 import { colors } from '../theme'
 
-/**
- * 아이콘. 손그림 톤에 맞춰 선으로만 그린다 (웹 icons.tsx와 같은 도형).
- */
 interface IconProps {
   size?: number
   color?: string

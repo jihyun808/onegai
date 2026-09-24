@@ -1,5 +1,3 @@
-"""즐겨찾기 저장·조회."""
-
 import pytest
 
 from app.models import favorite
@@ -8,14 +6,12 @@ from app.routes.auth import SESSION_KEY
 
 @pytest.fixture
 def fake_favorites(monkeypatch):
-    """favorites 테이블을 메모리로 대체한다."""
 
     class Store:
         def __init__(self):
             self.rows = {}
 
         def list_for(self, user_id):
-            # 실제 모델은 song_no를 no로 바꿔 내보낸다. 그 형태를 그대로 흉내낸다.
             return [
                 {**row, "created_at": None}
                 for (uid, _, _), row in self.rows.items()
@@ -27,7 +23,7 @@ def fake_favorites(monkeypatch):
             for e in entries:
                 key = (user_id, e["brand"], e["no"])
                 if key in self.rows:
-                    continue  # UNIQUE 제약이 중복을 무시한다
+                    continue
                 self.rows[key] = {
                     "brand": e["brand"],
                     "no": e["no"],
@@ -81,7 +77,6 @@ class TestFavorites:
         assert body["total"] == 2
 
     def test_both_brands_become_one_card(self, logged_in, fake_favorites):
-        """저장은 번호 단위지만 화면은 곡 단위다."""
         logged_in.post("/api/favorites", json={"songs": SONGS})
         groups = logged_in.get("/api/favorites").get_json()["groups"]
 
@@ -108,7 +103,6 @@ class TestFavorites:
         assert logged_in.post("/api/favorites", json={"songs": []}).status_code == 400
 
     def test_bulk_is_capped(self, logged_in, fake_favorites):
-        """로그인 시 로컬 목록을 통째로 올릴 때 폭주하지 않게."""
         from app.routes.favorites import MAX_BULK
 
         many = [

@@ -7,7 +7,7 @@
   margin: 0;
   font-family: var(--font-logo);
   font-size: 26px;
-  font-weight: 400; /* 잘난체는 단일 굵기라 bold를 주면 브라우저가 억지로 굵힌다 */
+  font-weight: 400;
   line-height: 1.2;
   letter-spacing: -0.01em;
 }
@@ -20,7 +20,6 @@
   color: var(--accent);
 }
 
-/* 음표는 '오케' 위쪽에 걸치게 둔다 */
 .logo__notes {
   position: absolute;
   left: 48%;

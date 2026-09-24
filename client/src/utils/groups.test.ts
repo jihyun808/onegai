@@ -15,7 +15,6 @@ function group(partial: Partial<SongGroup> & { match_key: string }): SongGroup {
 
 describe('mergeGroups', () => {
   it('페이지가 갈려 들어온 같은 곡을 한 장으로 합친다', () => {
-    // 발매일 정렬 탓에 TJ 등록분과 금영 등록분이 다른 페이지에 떨어진다
     const merged = mergeGroups(
       [group({ match_key: '夜に駆ける', brands: { tj: ['68506'] } })],
       [group({ match_key: '夜に駆ける', brands: { kumyoung: ['44796'] } })],
@@ -50,7 +49,6 @@ describe('mergeGroups', () => {
 
 describe('appendNew', () => {
   it('처음 보는 곡은 끝에 붙인다', () => {
-    // 발매순으로 끼워 넣으면 보고 있던 카드가 밀려 엉뚱한 것을 누르게 된다
     const result = appendNew(
       [group({ match_key: 'A' }), group({ match_key: 'B' })],
       [group({ match_key: 'C' })],
@@ -97,7 +95,6 @@ describe('filterByBrand', () => {
   })
 
   it('한 브랜드만 볼 때는 both를 끈다', () => {
-    // 금영 탭인데 '양쪽에 있음' 표시가 남으면 화면이 거짓말을 한다
     expect(filterByBrand(groups, 'kumyoung')[0].both).toBe(false)
   })
 

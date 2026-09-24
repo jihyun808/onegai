@@ -8,7 +8,6 @@ interface Props {
   children: React.ReactNode
 }
 
-/** 손그림 톤의 둥근 팝업. 배경을 누르거나 Esc로 닫는다. */
 export function Modal({ title, onClose, children }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -18,11 +17,9 @@ export function Modal({ title, onClose, children }: Props) {
     }
     document.addEventListener('keydown', onKey)
 
-    // 팝업 뒤 목록이 같이 스크롤되지 않게 막는다
     const { overflow } = document.body.style
     document.body.style.overflow = 'hidden'
 
-    // 열리면 팝업 안으로 초점을 옮긴다
     panelRef.current?.focus()
 
     return () => {
@@ -40,7 +37,6 @@ export function Modal({ title, onClose, children }: Props) {
         aria-label={title}
         tabIndex={-1}
         ref={panelRef}
-        // 패널 안을 눌렀을 때 배경 클릭으로 취급되지 않게 한다
         onClick={(event) => event.stopPropagation()}
       >
         <div className="modal__head">

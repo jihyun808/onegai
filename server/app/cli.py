@@ -1,14 +1,3 @@
-"""크롤링용 CLI.
-
-    flask --app run crawl-backfill        전체 백필 (최초 1회, 1~2시간)
-    flask --app run crawl-daily           매일 돌릴 작업
-    flask --app run crawl-ky-book         금영 일본곡 색인 전량 (약 15분)
-    flask --app run translate-titles      곡 제목을 한국어로 옮겨 적재
-    flask --app run purge-access-log      보관 기간이 지난 접속기록 삭제
-    flask --app run crawl-status          적재 현황
-    flask --app run init-db               db/*.sql 중 아직 안 돌린 것만 실행
-"""
-
 from pathlib import Path
 
 import click
@@ -156,8 +145,6 @@ def crawl_status():
         )
 
 
-# schema.sql이 users를 만들고 003이 그 users를 고친다. 이름순으로 돌리면
-# 's'가 숫자보다 뒤라 003이 먼저 돌아 깨지므로 schema.sql을 맨 앞에 둔다.
 DB_DIR = Path(__file__).resolve().parent.parent / "db"
 
 
@@ -167,7 +154,6 @@ def _migration_files():
 
 
 def _statements(sql):
-    """주석 줄을 걷어내고 ';'로 나눈다. 우리 SQL엔 문자열 속 ';'가 없다."""
     body = "\n".join(
         line for line in sql.splitlines() if not line.lstrip().startswith("--")
     )
@@ -213,8 +199,6 @@ def init_db(mark_applied):
 
         for path in pending:
             if not mark_applied:
-                # DDL은 MySQL에서 자동 커밋이라 트랜잭션으로 묶이지 않는다.
-                # 중간에 깨지면 기록이 남지 않으므로 고친 뒤 다시 돌리면 된다.
                 for stmt in _statements(path.read_text(encoding="utf-8")):
                     cursor.execute(stmt)
             cursor.execute(

@@ -1,28 +1,22 @@
-# macOS
 .DS_Store
 
-# Node
 node_modules/
 dist/
 *.local
 .vite/
 
-# Python
 __pycache__/
 *.py[cod]
 venv/
 .venv/
 *.egg-info/
 
-# Env
 .env
 .env.*
 !.env.example
 
-# Logs
 *.log
 npm-debug.log*
 
-# Editors
 .vscode/
 .idea/

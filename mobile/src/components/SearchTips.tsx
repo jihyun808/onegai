@@ -2,12 +2,6 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import { colors, fonts } from '../theme'
 
-/**
- * 검색어를 아직 안 넣었을 때 띄우는 안내.
- * 실제로 결과가 갈리는 것만 골랐다 (2026-08-19 실측, 웹 SearchTips.tsx 참고).
- */
-
-/** [앞, 굵게, 뒤] */
 const TIPS: { text: [string, string, string]; eg: string }[] = [
   { text: ['', '띄어쓰기 없이', ' 붙여서'], eg: '요루니카케루 ⭘ / 요루니 카케루 ✕' },
   { text: ['곡명이 안 나오면 ', '가수명으로', ''], eg: '긴 일본어 제목은 잘 안 걸려요' },

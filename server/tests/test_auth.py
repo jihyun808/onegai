@@ -1,5 +1,3 @@
-"""회원가입 · 로그인 · 세션."""
-
 import pytest
 
 from app.models import user
@@ -9,7 +7,6 @@ from app.services.auth_service import AuthError
 
 @pytest.fixture
 def fake_users(monkeypatch):
-    """users 테이블을 메모리로 대체한다."""
 
     class Store:
         def __init__(self):
@@ -64,7 +61,6 @@ class TestPasswordHashing:
         assert stored.startswith("$2b$"), "bcrypt 해시여야 한다"
 
     def test_same_password_gets_different_hashes(self, app, fake_users):
-        """솔트가 달라야 한다. 같으면 레인보우 테이블에 취약하다."""
         with app.app_context():
             a = auth_service.hash_password("password123")
             b = auth_service.hash_password("password123")
@@ -93,7 +89,6 @@ class TestRegister:
         assert "중복" in str(caught.value)
 
     def test_duplicate_check_ignores_case(self, app, fake_users):
-        """'Jihyeon'과 'jihyeon'이 따로 생기면 서로를 사칭할 수 있다."""
         with app.app_context():
             auth_service.register("jihyeon", "password123")
             with pytest.raises(AuthError):
@@ -106,7 +101,6 @@ class TestRegister:
         assert caught.value.field == "username"
 
     def test_allows_long_passphrase(self, app, fake_users):
-        """길이 상한을 두면 긴 암호구절을 쓰는 사람이 막힌다."""
         with app.app_context():
             created = auth_service.register("jihyeon", "correct horse battery staple")
         assert created["username"] == "jihyeon"
@@ -120,7 +114,6 @@ class TestLogin:
         assert found["username"] == "jihyeon"
 
     def test_unknown_user_and_wrong_password_look_alike(self, app, fake_users, fake_redis):
-        """다르게 답하면 어떤 아이디가 있는지 긁어갈 수 있다."""
         with app.app_context():
             auth_service.register("jihyeon", "password123")
 
@@ -140,7 +133,6 @@ class TestLogin:
                 with pytest.raises(AuthError):
                     auth_service.login("jihyeon", "wrongpass1")
 
-            # 잠긴 뒤에는 올바른 비밀번호도 막힌다
             with pytest.raises(AuthError) as caught:
                 auth_service.login("jihyeon", "password123")
 
@@ -184,7 +176,6 @@ class TestEndpoints:
         assert client.get("/api/auth/me").get_json() is None
 
     def test_error_carries_field(self, client, fake_users):
-        """클라이언트가 어느 입력창 아래에 메시지를 붙일지 알아야 한다."""
         res = client.post(
             "/api/auth/register", json={"username": "jihyeon", "password": "1234"}
         )
@@ -196,7 +187,6 @@ class TestEndpoints:
 
 
 class TestRateLimit:
-    """계정당 제한과 별개로, 한 IP에서 쏟아내는 요청을 막는다."""
 
     def test_blocks_burst_of_signups(self, client, fake_users, fake_redis):
         codes = []
@@ -220,7 +210,6 @@ class TestRateLimit:
         assert res.headers.get("Retry-After")
 
     def test_login_burst_across_accounts(self, client, fake_users, fake_redis):
-        """아이디를 바꿔가며 시도하면 계정 카운터는 안 오른다. IP 제한이 잡는다."""
         codes = []
         for i in range(25):
             res = client.post(
@@ -232,7 +221,6 @@ class TestRateLimit:
         assert 429 in codes
 
     def test_passes_through_without_redis(self, client, fake_users):
-        """Redis가 없으면 통과시킨다 — 캐시 장애로 로그인이 막히면 안 된다."""
         codes = []
         for i in range(15):
             res = client.post(
@@ -245,7 +233,6 @@ class TestRateLimit:
 
 
 class TestAccessLog:
-    """개인정보에 접근하는 요청은 접속기록에 남긴다 (안전성 확보조치 기준 제8조)."""
 
     @pytest.fixture
     def logged(self, monkeypatch):
@@ -269,13 +256,11 @@ class TestAccessLog:
         assert any(a == "GET /api/favorites" for _, a, _ in logged)
 
     def test_search_is_not_recorded(self, client, logged):
-        """검색은 개인정보가 아니다. 남기면 취향 기록이 쌓인다."""
         client.get("/api/search?q=ヨルシカ")
 
         assert logged == []
 
     def test_failure_to_log_does_not_break_request(self, client, monkeypatch):
-        """기록에 실패했다고 이용자의 요청이 실패하면 안 된다."""
         from app.utils import db
 
         def boom(*a, **k):

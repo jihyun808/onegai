@@ -19,7 +19,6 @@ interface Props {
   children: React.ReactNode
 }
 
-/** 가운데 뜨는 대화상자. 바깥을 누르거나 뒤로가기로 닫힌다. */
 export function Modal({ title, onClose, children }: Props) {
   return (
     <RNModal visible transparent animationType="fade" onRequestClose={onClose}>

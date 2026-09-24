@@ -1,19 +1,9 @@
 import './Logo.css'
 
-/**
- * "오네가이" 워드마크.
- *
- * 앞의 '오네'는 먹색, 뒤의 '가이'는 코럴로 끊어 강조하고
- * 위에 음표를 흩뿌려 노래방 느낌을 낸다. 세 화면이 공유한다.
- */
 export function Logo() {
   return (
     <div className="logo">
       <span className="logo__notes" aria-hidden="true">
-        {/*
-          붙임줄로 이어진 8분음표 쌍 세 개. 크기와 색을 조금씩 달리했다.
-          기둥 하나에 머리 하나씩 — 왼쪽 기둥 아래, 오른쪽 기둥 아래 모두 붙인다.
-        */}
         <svg viewBox="0 0 60 30" width="52" height="26">
           <g className="logo__note logo__note--1">
             <path d="M8 21V9l7-2v12" />

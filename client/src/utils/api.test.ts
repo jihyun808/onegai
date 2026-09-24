@@ -21,7 +21,6 @@ describe('searchSongs', () => {
 
     const url = calledUrl(spy)
     expect(url).toContain('q=%E5%A4%9C')
-    // 안 켠 것은 아예 붙이지 않는다 — 서버 기본값을 덮어쓰면 안 된다
     expect(url).not.toContain('full=')
     expect(url).not.toContain('korean=')
   })
@@ -43,7 +42,6 @@ describe('searchSongs', () => {
   })
 
   it('본문이 JSON이 아니어도 안내 문구를 만든다', async () => {
-    // 프록시가 HTML 에러 페이지를 돌려주는 경우
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
       status: 502,
@@ -59,11 +57,6 @@ describe('searchSongs', () => {
 })
 
 describe('fetchLyrics / fetchPreview', () => {
-  /*
-   * 서버는 "못 찾았다"를 200 + available:false로 답한다.
-   * 그러니 !ok는 프록시·네트워크 문제뿐이고, 이건 다시 시도할 만한 실패다.
-   * 둘을 같은 값으로 뭉치면 잠깐 끊긴 것 때문에 버튼이 영영 잠긴다.
-   */
   it('못 찾은 것은 예외가 아니다', async () => {
     mockResponse({ available: false, reason: '금영에 등록된 가사가 없어요.' })
     await expect(fetchLyrics('A', 'B')).resolves.toMatchObject({ available: false })
